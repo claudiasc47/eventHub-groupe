@@ -1,0 +1,255 @@
+/* ====== RESET GLOBAL ====== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #050608;
+  color: #f7f7f7;
+}
+
+/* thème clair */
+body.light {
+  background: #f3f4f7;
+  color: #222;
+}
+
+/* ====== SHELL PRINCIPALE ====== */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== NAVBAR ====== */
+
+.navbar {
+  background: #111318;
+  border-bottom: 1px solid #222630;
+}
+
+.nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-links {
+  display: flex;
+  gap: 18px;
+}
+
+.nav-links a {
+  font-size: 14px;
+  color: #93b5ff;
+  text-decoration: none;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+}
+/* FORM CONTAINER CENTERING */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 100px); /* espace sous navbar */
+}
+
+.card {
+  width: 400px;
+  padding: 30px;
+  border-radius: 12px;
+  background: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.logout {
+  background: #252a36;
+  color: #f7f7f7;
+  border-radius: 999px;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.logout:hover {
+  background: #343b4a;
+}
+/* Generic button look */
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Primary (blue) */
+button.primary {
+  background: #1673ff;
+  color: white;
+}
+
+/* Danger (red) */
+button.danger {
+  background: #d73838;
+  color: white;
+}
+
+/* Neutral */
+button.neutral {
+  background: #2c2c2c;
+  color: #ddd;
+}
+.user-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-row span {
+  font-size: 16px;
+}
+
+/* ====== CONTENU CENTRÉ ====== */
+
+.content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+/* ====== CARD ====== */
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: #171923;
+  padding: 28px 24px 24px;
+  border-radius: 16px;
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.45);
+}
+
+body.light .card {
+  background: #ffffff;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card h2 {
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+/* ====== FORM ====== */
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid #303547;
+  background: #111318;
+  color: #f7f7f7;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: #7c8294;
+}
+
+body.light input {
+  background: #f5f5f7;
+  color: #222;
+  border-color: #d0d3dd;
+}
+
+button {
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+/* bouton principal */
+
+.primary {
+  background: #2d6bff;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.primary:hover {
+  background: #2558d1;
+}
+
+/* bouton thème */
+
+.theme-btn {
+  margin-top: 18px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid #383d51;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+
+body.light .theme-btn {
+  border-color: #cfd2df;
+}
+
+/* texte d'info (reset) */
+
+.info {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* ====== RESPONSIVE ====== */
+
+@media (max-width: 600px) {
+  .nav-inner {
+    padding-inline: 12px;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .card {
+    padding-inline: 18px;
+  }
+}

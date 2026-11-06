@@ -1,0 +1,145 @@
+services:
+  api-gateway:
+    container_name: api-gateway
+    build: ./services/api-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./services/api-gateway/.env
+    volumes:
+      - ./services/api-gateway/src:/app/src
+      - ./services/api-gateway/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
+    depends_on:
+      - event-broker
+    restart: unless-stopped
+    networks:
+      - default
+
+  event-broker:
+    image: rabbitmq:4.2.1-management
+    container_name: event-broker
+    ports:
+      - "5672:5672" # broker not needed to be exposed
+      - "15672:15672" # UI management
+    env_file:
+      - ./infra/event-broker/.env
+    volumes:
+      - ./infra/event-broker/config/definitions.json:/etc/rabbitmq/definitions.json
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - default
+
+  users-db:
+    image: postgres:alpine
+    container_name: users-db
+    restart: always
+    env_file:
+      - ./services/users-service/.env
+    volumes:
+      - users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  users-service:
+    container_name: users-service
+    build: ./services/users-service
+    ports:
+      - "3001:3000" # For development purposes
+    env_file:
+      - ./services/users-service/.env
+    volumes:
+      - ./services/users-service/src:/app/src
+      - ./services/users-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
+    networks:
+      - default
+    depends_on:
+      - event-broker
+      - users-db
+    restart: unless-stopped
+
+  events-db:
+    image: postgres:alpine
+    container_name: events-db
+    restart: always
+    env_file:
+      - ./services/events-service/.env
+    volumes:
+      - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  events-service:
+    container_name: events-service
+    build: ./services/events-service
+    ports:
+      - "3002:3000" # For development purposes
+    env_file:
+      - ./services/events-service/.env
+    volumes:
+      - ./services/events-service/src:/app/src
+      - ./services/events-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
+    networks:
+      - default
+    depends_on:
+      - events-db
+      - event-broker
+    restart: unless-stopped
+
+  ticketing-db:
+    image: postgres:alpine
+    container_name: ticketing-db
+    restart: always
+    ports:
+      - "5433:5432" # Exposed for local development
+    env_file:
+      - ./services/ticketing-service/.env
+    volumes:
+      - ticketing-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  ticketing-service:
+    container_name: ticketing-service
+    build: ./services/ticketing-service
+    ports:
+      - "3003:3000" # For development purposes
+    env_file:
+      - ./services/ticketing-service/.env
+    volumes:
+      - ./services/ticketing-service/src:/app/src
+      - ./services/ticketing-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
+    networks:
+      - default
+    depends_on:
+      - ticketing-db
+      - event-broker
+    restart: unless-stopped
+
+volumes:
+  users-db-data:
+  events-db-data:
+  ticketing-db-data:
+
+networks:
+  default:
+    driver: bridge

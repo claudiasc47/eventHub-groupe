@@ -1,0 +1,88 @@
+{
+  "exchanges": [
+    {
+      "name": "events",
+      "type": "topic",
+      "durable": true
+    }
+  ],
+  "queues": [
+    { "name": "ticket_service_queue", "durable": true },
+    { "name": "payment_service_queue", "durable": true },
+    { "name": "notifications_service_queue", "durable": true }
+  ],
+  "bindings": [
+    {
+      "source": "events",
+      "destination": "notifications_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventCreatedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "ticket_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventUpdatedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "notifications_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventUpdatedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "ticket_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventCancelledEvent"
+    },
+    {
+      "source": "events",
+      "destination": "payment_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventCancelledEvent"
+    },
+    {
+      "source": "events",
+      "destination": "notifications_service_queue",
+      "destination_type": "queue",
+      "routing_key": "EventCancelledEvent"
+    },
+    {
+      "source": "events",
+      "destination": "payment_service_queue",
+      "destination_type": "queue",
+      "routing_key": "TicketBookedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "ticket_service_queue",
+      "destination_type": "queue",
+      "routing_key": "PaymentProcessedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "notifications_service_queue",
+      "destination_type": "queue",
+      "routing_key": "PaymentProcessedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "ticket_service_queue",
+      "destination_type": "queue",
+      "routing_key": "PaymentFailedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "notifications_service_queue",
+      "destination_type": "queue",
+      "routing_key": "PaymentFailedEvent"
+    },
+    {
+      "source": "events",
+      "destination": "payment_service_queue",
+      "destination_type": "queue",
+      "routing_key": "TicketCancelledEvent"
+    }
+  ]
+}

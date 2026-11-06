@@ -1,0 +1,211 @@
+{
+	"info": {
+		"_postman_id": "7e9137eb-fd55-464a-944c-67179eaecbe0",
+		"name": "Collection events-service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39734640"
+	},
+	"item": [
+		{
+			"name": "Liste catégories",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/categories",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"categories"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Liste Lieu",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/locations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"locations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Liste Evenements",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/events",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ajouter Catégorie",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"libelle\": \"TEST\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/categories",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"categories"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ajouter Lieu",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"nom\": \"TEST\",\r\n    \"adresse\": \"TEST\",\r\n    \"ville\": \"TEST\",\r\n    \"code_postal\": \"12345\",\r\n    \"capacite\": 150\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/locations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"locations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ajouter Evenements",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nom\": \"Conférence Microservices\",\r\n  \"description\": \"Présentation de la plateforme de gestion d'événements.\",\r\n  \"date_debut\": \"2025-06-10T09:00:00Z\",\r\n  \"date_fin\": \"2025-06-10T18:00:00Z\",\r\n  \"categoryId\": \"4c260b3e-048e-4e93-b240-b9773409bcb4\",\r\n  \"locationId\": \"788e405b-7e8c-4907-a1fc-22682995a0d3\",\r\n  \"capacite\": 200,\r\n  \"status\": \"DRAFT\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/events",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Supprimer Catégorie",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/categories/e354614a-5bb6-435d-9082-539f4a31df85",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"categories",
+						"e354614a-5bb6-435d-9082-539f4a31df85"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Supprimer Evenements",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/events/c08383d1-b27f-4f15-8c1d-e4f7d2b5098b",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"events",
+						"c08383d1-b27f-4f15-8c1d-e4f7d2b5098b"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Supprimer Lieu",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/locations/788e405b-7e8c-4907-a1fc-22682995a0d3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"locations",
+						"788e405b-7e8c-4907-a1fc-22682995a0d3"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
