@@ -1,145 +1,59 @@
 services:
-  api-gateway:
-    container_name: api-gateway
-    build: ./services/api-gateway
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./services/api-gateway/.env
-    volumes:
-      - ./services/api-gateway/src:/app/src
-      - ./services/api-gateway/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
-    depends_on:
-      - event-broker
+  db:
+    image: postgres:16-alpine
+    container_name: eventhub-db
     restart: unless-stopped
-    networks:
-      - default
-
-  event-broker:
-    image: rabbitmq:4.2.1-management
-    container_name: event-broker
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5672:5672" # broker not needed to be exposed
-      - "15672:15672" # UI management
-    env_file:
-      - ./infra/event-broker/.env
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ./infra/event-broker/config/definitions.json:/etc/rabbitmq/definitions.json
+      - eventhub_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s
-    networks:
-      - default
 
-  users-db:
-    image: postgres:alpine
-    container_name: users-db
-    restart: always
-    env_file:
-      - ./services/users-service/.env
-    volumes:
-      - users-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - default
-
-  users-service:
-    container_name: users-service
-    build: ./services/users-service
-    ports:
-      - "3001:3000" # For development purposes
-    env_file:
-      - ./services/users-service/.env
-    volumes:
-      - ./services/users-service/src:/app/src
-      - ./services/users-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
-    networks:
-      - default
-    depends_on:
-      - event-broker
-      - users-db
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eventhub-api
     restart: unless-stopped
-
-  events-db:
-    image: postgres:alpine
-    container_name: events-db
-    restart: always
-    env_file:
-      - ./services/events-service/.env
-    volumes:
-      - events-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - default
-
-  events-service:
-    container_name: events-service
-    build: ./services/events-service
-    ports:
-      - "3002:3000" # For development purposes
-    env_file:
-      - ./services/events-service/.env
-    volumes:
-      - ./services/events-service/src:/app/src
-      - ./services/events-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
-    networks:
-      - default
     depends_on:
-      - events-db
-      - event-broker
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${API_PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eventhub-web
     restart: unless-stopped
-
-  ticketing-db:
-    image: postgres:alpine
-    container_name: ticketing-db
-    restart: always
-    ports:
-      - "5433:5432" # Exposed for local development
-    env_file:
-      - ./services/ticketing-service/.env
-    volumes:
-      - ticketing-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - default
-
-  ticketing-service:
-    container_name: ticketing-service
-    build: ./services/ticketing-service
-    ports:
-      - "3003:3000" # For development purposes
-    env_file:
-      - ./services/ticketing-service/.env
-    volumes:
-      - ./services/ticketing-service/src:/app/src
-      - ./services/ticketing-service/node_modules:/app/node_modules # to avoid overwriting node_modules in the container
-    networks:
-      - default
     depends_on:
-      - ticketing-db
-      - event-broker
-    restart: unless-stopped
+      - api
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
-  users-db-data:
-  events-db-data:
-  ticketing-db-data:
-
-networks:
-  default:
-    driver: bridge
+  eventhub_pgdata:
