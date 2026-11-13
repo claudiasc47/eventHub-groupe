@@ -46,12 +46,14 @@ Démarrer la base de données PostgreSQL 16, l'API NestJS et le Front-end React 
 
 ## Comptes de démonstration (Seed)
 
-- **Organisateur / Admin :** `admin@eventhub.local` / `Admin1234!`
-- **Participant :** `user@eventhub.local` / `User1234!`
+- **Administrateur (`admin`) :** `admin@eventhub.local` / `Admin1234!`
+- **Organisateur (`organizer`) :** `organizer@eventhub.local` / `Organizer1234!`
+- **Participant (`participant`) :** `user@eventhub.local` / `User1234!`
 
 ---
 
 ## Documentation et qualité
 
+- [Contrat d'API v0.1 (Validé)](documentation/Contrat-API-v0.1-EventHub.md)
 - [Cartographie initiale & Audit (Atelier 1)](documentation/ATELIER-1-CARTOGRAPHIE-EVENTHUB.md)
 - [ADR-001 : Architecture découplée SPA + API REST unifiée](docs/adr/ADR-001-architecture-spa-api-unifiee.md)
