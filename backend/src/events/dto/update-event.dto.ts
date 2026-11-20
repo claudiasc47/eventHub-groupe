@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform } from 'class-transformer'
 import {
   IsDateString,
   IsIn,
@@ -9,43 +9,43 @@ import {
   IsString,
   IsUUID,
   Min,
-} from 'class-validator';
+} from 'class-validator'
 
 export class UpdateEventDto {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  name?: string;
+  name?: string
 
   @IsString()
   @IsOptional()
-  description?: string;
+  description?: string
 
   @IsDateString({ strict: true, strictSeparator: true })
   @Matches(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
   @IsOptional()
-  startDate?: string;
+  startDate?: string
 
   @IsDateString({ strict: true, strictSeparator: true })
   @Matches(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
   @IsOptional()
-  endDate?: string;
+  endDate?: string
 
   @IsUUID()
   @IsOptional()
-  locationId?: string;
+  locationId?: string
 
   @IsUUID()
   @IsOptional()
-  categoryId?: string;
+  categoryId?: string
 
   @IsInt()
   @Min(1)
   @IsOptional()
-  capacity?: number;
+  capacity?: number
 
   @IsIn(['PUBLISHED'])
   @IsOptional()
-  status?: 'PUBLISHED';
+  status?: 'PUBLISHED'
 }
