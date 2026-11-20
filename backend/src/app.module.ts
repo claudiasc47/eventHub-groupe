@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config/dist/config.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CategoriesModule } from './categories/categories.module';
 import { EventsModule } from './events/events.module';
@@ -12,7 +13,7 @@ import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({isGlobal: true, envFilePath: '../.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '../.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -27,6 +28,7 @@ import { LocationsModule } from './locations/locations.module';
       }),
     }),
     UsersModule,
+    AuthModule,
     BookingsModule,
     CategoriesModule,
     EventsModule,
