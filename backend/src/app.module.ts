@@ -5,6 +5,10 @@ import { ConfigService } from '@nestjs/config/dist/config.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { CategoriesModule } from './categories/categories.module';
+import { EventsModule } from './events/events.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -23,6 +27,10 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     UsersModule,
+    BookingsModule,
+    CategoriesModule,
+    EventsModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

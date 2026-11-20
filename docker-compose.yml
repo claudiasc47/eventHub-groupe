@@ -35,9 +35,6 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     ports:
       - "${API_PORT:-3000}:3000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
 
   web:
     build:
