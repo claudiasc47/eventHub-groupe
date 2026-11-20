@@ -4,4 +4,4 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
-CMD ["sh", "-c", "npm run migration:run:prod && node dist/main"]
+CMD ["sh", "-c", "npm run migration:run && node dist/main"]

@@ -57,3 +57,5 @@ Démarrer la base de données PostgreSQL 16, l'API NestJS et le Front-end React 
 - [Contrat d'API v0.1 (Validé)](documentation/Contrat-API-v0.1-EventHub.md)
 - [Cartographie initiale & Audit (Atelier 1)](documentation/ATELIER-1-CARTOGRAPHIE-EVENTHUB.md)
 - [ADR-001 : Architecture découplée SPA + API REST unifiée](docs/adr/ADR-001-architecture-spa-api-unifiee.md)
+- [ADR-002 : Modèle de données relationnel simplifié (5 tables)](docs/adr/ADR-002-modele-donnees-simplifie.md)
+- [Archive UML & Postman (Existant avant refonte)](documentation/archive-existant-uml/) — *Diagrammes et collections Postman issus de l'architecture microservices initiale (obsolètes suite à ADR-001 et ADR-002).*
