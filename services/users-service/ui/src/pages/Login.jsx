@@ -1,12 +1,15 @@
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import api from "../api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState("");
 
   async function handleLogin(e) {
     e.preventDefault();
+    setFormError("");
 
     try {
       const res = await api.post("/auth/login", {
@@ -20,8 +23,30 @@ export default function Login() {
 
       alert("Connexion OK !");
       window.location.href = "/profile";
-    } catch {
-      alert("Login FAILED");
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          setFormError("Email ou mot de passe incorrect.");
+          return;
+        }
+
+        if (error.response?.status === 400) {
+          const message = error.response.data?.message;
+          setFormError(
+            typeof message === "string" && message
+              ? message
+              : "Vérifie les données saisies.",
+          );
+          return;
+        }
+
+        if (error.request && !error.response) {
+          setFormError("Impossible de joindre l’API. Réessaie dans un instant.");
+          return;
+        }
+      }
+
+      setFormError("La connexion a échoué. Réessaie dans un instant.");
     }
   }
 
@@ -50,6 +75,7 @@ export default function Login() {
         <button type="submit" className="primary">
           Login
         </button>
+        {formError && <p role="alert">{formError}</p>}
       </form>
 
       <button className="theme-btn" onClick={toggleTheme}>
