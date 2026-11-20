@@ -1,0 +1,853 @@
+openapi: 3.1.0
+info:
+  title: EventHub API
+  version: 0.1.0
+  summary: API du MVP EventHub (React/Vite, NestJS, PostgreSQL)
+  description: |
+    Traduction OpenAPI du contrat d'API v0.1 (Contrat-API-v0.1-EventHub.md).
+
+    - Préfixe des routes : `/api` (URL locale `http://localhost:3000/api`).
+    - Authentification : `Authorization: Bearer <access_token>`. Le jeton d'accès dure 1 heure, sans rafraîchissement dans le MVP.
+    - Rôles : `participant`, `organizer`, `admin`. L'inscription publique crée toujours un `participant`.
+    - Les erreurs suivent un format commun ; le champ `code` sert au Front, `message` est affiché, `details` ne concerne que `VALIDATION_ERROR`.
+
+    Contrat validé par l'équipe (décisions D1 à D5 intégrées)
+  contact:
+    name: Équipe EventHub
+  license:
+    name: Usage interne
+
+servers:
+  - url: http://localhost:3000/api
+    description: Environnement local
+
+tags:
+  - name: Auth
+    description: Connexion
+  - name: Users
+    description: Inscription, profil et administration des comptes
+  - name: Events
+    description: Catalogue, cycle de vie et gestion des événements
+  - name: Bookings
+    description: Réservations
+  - name: Reference
+    description: Lieux et catégories pour les filtres et formulaires
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users/register:
+    post:
+      tags: [Users]
+      summary: Créer un compte participant
+      description: |
+        Crée toujours un compte `participant`. Pas de jeton en réponse : le Front enchaîne sur `POST /auth/login`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Compte créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Email déjà utilisé (`EMAIL_ALREADY_USED`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                code: EMAIL_ALREADY_USED
+                message: Cette adresse email est déjà utilisée.
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Profil du compte connecté
+      responses:
+        "200":
+          description: Compte connecté
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /users:
+    get:
+      tags: [Users]
+      summary: Lister les comptes (administrateur)
+      description: Réservé au rôle `admin`.
+      responses:
+        "200":
+          description: Liste des comptes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Changer le rôle d'un compte (administrateur)
+      description: Réservé au rôle `admin`. Le nouveau rôle est effectif à la reconnexion de l'utilisateur.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleInput"
+      responses:
+        "200":
+          description: Compte mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /events:
+    get:
+      tags: [Events]
+      summary: Catalogue des événements publiés
+      description: |
+        Ne renvoie que les événements `PUBLISHED`, passés compris. Pour n'afficher que les événements à venir, le Front envoie `dateFrom` à la date du jour.
+        Les filtres se combinent. Une recherche sans résultat renvoie `200` avec `items: []`.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Recherche insensible à la casse dans `name` et `description`.
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - name: locationId
+          in: query
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - name: dateFrom
+          in: query
+          description: Borne incluse sur `startDate`.
+          schema:
+            $ref: "#/components/schemas/DateOnly"
+        - name: dateTo
+          in: query
+          description: Borne incluse sur `startDate`.
+          schema:
+            $ref: "#/components/schemas/DateOnly"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: Tri sur `startDate`, puis `id` pour stabiliser la pagination.
+          schema:
+            type: string
+            enum: ["startDate:asc", "startDate:desc"]
+            default: "startDate:asc"
+      responses:
+        "200":
+          description: Page d'événements publiés
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+    post:
+      tags: [Events]
+      summary: Créer un événement (brouillon)
+      description: Réservé au rôle `organizer`. L'événement est créé en `DRAFT`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Événement créé en brouillon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /me/events:
+    get:
+      tags: [Events]
+      summary: Événements de l'organisateur connecté
+      description: Réservé au rôle `organizer`. Brouillons inclus.
+      responses:
+        "200":
+          description: Événements de l'organisateur
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /events/{id}:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+
+    get:
+      tags: [Events]
+      summary: Détail d'un événement
+      description: |
+        Public pour un événement `PUBLISHED`. Un brouillon n'est visible que par son propriétaire ; pour tout autre compte (ou sans connexion), il renvoie `404`.
+      security: []
+      responses:
+        "200":
+          description: Événement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [Events]
+      summary: Modifier un événement ou le publier
+      description: |
+        Réservé au propriétaire de l'événement.
+
+        - Corps `EventUpdate` : champs modifiables de `EventInput`, en partie.
+        - Corps `{ "status": "PUBLISHED" }` : publication.
+        - Transitions : `DRAFT` vers `PUBLISHED` uniquement. Envoyer `status: DRAFT` sur un événement publié renvoie `400`.
+        - La capacité ne peut pas descendre sous le nombre de places réservées (`409 CAPACITY_BELOW_RESERVED`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/EventUpdate"
+                - $ref: "#/components/schemas/StatusChange"
+      responses:
+        "200":
+          description: Événement mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          description: Données invalides ou transition interdite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Capacité inférieure aux places réservées (`CAPACITY_BELOW_RESERVED`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                code: CAPACITY_BELOW_RESERVED
+                message: La capacité ne peut pas descendre sous le nombre de places réservées.
+
+    delete:
+      tags: [Events]
+      summary: Supprimer un événement
+      description: |
+        Réservé au propriétaire. Possible en `DRAFT` ou en `PUBLISHED` tant qu'aucune réservation `CONFIRMED` n'existe.
+      responses:
+        "204":
+          description: Événement supprimé (corps vide)
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Réservations actives (`ACTIVE_BOOKINGS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                code: ACTIVE_BOOKINGS
+                message: Cet événement a des réservations actives et ne peut pas être supprimé.
+
+  /events/{id}/bookings:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+
+    post:
+      tags: [Bookings]
+      summary: Réserver des places
+      description: |
+        Nécessite un compte connecté. La réservation est `CONFIRMED` immédiatement (pas de paiement ni de types de billets dans le MVP).
+        Deux demandes simultanées pour la dernière place : une obtient `201`, l'autre `409`. L'inscription et la mise à jour du stock sont faites dans la même transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingInput"
+      responses:
+        "201":
+          description: Réservation confirmée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: Événement absent ou non publié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Places insuffisantes (`INSUFFICIENT_SEATS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                code: INSUFFICIENT_SEATS
+                message: Il ne reste pas assez de places pour cette demande.
+
+  /me/bookings:
+    get:
+      tags: [Bookings]
+      summary: Réservations du compte connecté
+      description: Du plus récent au plus ancien.
+      responses:
+        "200":
+          description: Réservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /bookings/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+
+    patch:
+      tags: [Bookings]
+      summary: Annuler une réservation
+      description: |
+        Réservé au propriétaire de la réservation. Idempotent : annuler une réservation déjà `CANCELLED` renvoie `200` et ne remet la place en stock qu'une seule fois.
+      responses:
+        "200":
+          description: Réservation annulée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /locations:
+    get:
+      tags: [Reference]
+      summary: Lieux disponibles
+      description: Pour les filtres et les formulaires.
+      security: []
+      responses:
+        "200":
+          description: Lieux
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NamedRef"
+
+  /categories:
+    get:
+      tags: [Reference]
+      summary: Catégories disponibles
+      description: Pour les filtres et les formulaires.
+      security: []
+      responses:
+        "200":
+          description: Catégories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NamedRef"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Jeton d'accès obtenu via `POST /auth/login`, valable 1 heure.
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant du compte (UUID).
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    EventId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant de l'événement (UUID).
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    BookingId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant de la réservation (UUID).
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+  responses:
+    ValidationError:
+      description: Données ou paramètres invalides (`VALIDATION_ERROR`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            code: VALIDATION_ERROR
+            message: Certaines données sont invalides.
+            details:
+              - field: capacity
+                message: La capacité doit être un entier positif.
+    Unauthenticated:
+      description: Session invalide ou absente (`UNAUTHENTICATED`). Le Front efface la session et redirige vers `/login`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 401
+            code: UNAUTHENTICATED
+            message: Session invalide ou absente.
+    Forbidden:
+      description: Rôle insuffisant ou compte non propriétaire (`FORBIDDEN`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            code: FORBIDDEN
+            message: Accès refusé.
+    NotFound:
+      description: Ressource absente (`NOT_FOUND`). Renvoyé aussi pour un brouillon consulté par un autre compte.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            code: NOT_FOUND
+            message: Ressource introuvable.
+
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+    DateOnly:
+      type: string
+      format: date
+      description: Date sans heure, au format `YYYY-MM-DD`.
+    DateTime:
+      type: string
+      format: date-time
+      description: Horodatage ISO 8601 en UTC.
+
+    Role:
+      type: string
+      enum: [participant, organizer, admin]
+    EventStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED]
+    BookingStatus:
+      type: string
+      enum: [CONFIRMED, CANCELLED]
+
+    RegisterInput:
+      type: object
+      required: [email, password, pseudo]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        pseudo:
+          type: string
+          minLength: 3
+          maxLength: 30
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        birthDate:
+          oneOf:
+            - $ref: "#/components/schemas/DateOnly"
+            - type: "null"
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [access_token, user]
+      properties:
+        access_token:
+          type: string
+          description: Conservé en snake_case pour la compatibilité avec le Front actuel.
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, email, pseudo, firstName, lastName, phone, birthDate, role]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        email:
+          type: string
+          format: email
+        pseudo:
+          type: string
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        birthDate:
+          oneOf:
+            - $ref: "#/components/schemas/DateOnly"
+            - type: "null"
+        role:
+          $ref: "#/components/schemas/Role"
+
+    RoleInput:
+      type: object
+      required: [role]
+      additionalProperties: false
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+
+    NamedRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+
+    EventInput:
+      type: object
+      required: [name, startDate, endDate, locationId, categoryId, capacity]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        startDate:
+          $ref: "#/components/schemas/DateTime"
+        endDate:
+          $ref: "#/components/schemas/DateTime"
+        locationId:
+          $ref: "#/components/schemas/Uuid"
+        categoryId:
+          $ref: "#/components/schemas/Uuid"
+        capacity:
+          type: integer
+          minimum: 1
+      description: |
+        Contrainte non exprimable en schéma : `endDate >= startDate`.
+
+    EventUpdate:
+      description: Champs modifiables de `EventInput`, en partie. Contrainte `endDate >= startDate` vérifiée côté serveur.
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        startDate:
+          $ref: "#/components/schemas/DateTime"
+        endDate:
+          $ref: "#/components/schemas/DateTime"
+        locationId:
+          $ref: "#/components/schemas/Uuid"
+        categoryId:
+          $ref: "#/components/schemas/Uuid"
+        capacity:
+          type: integer
+          minimum: 1
+
+    StatusChange:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          $ref: "#/components/schemas/EventStatus"
+      description: |
+        `PUBLISHED` publie un brouillon. `DRAFT` est refusé avec `400` sur un événement publié (pas de retour en brouillon dans le MVP).
+
+    LocationSummary:
+      $ref: "#/components/schemas/NamedRef"
+    CategorySummary:
+      $ref: "#/components/schemas/NamedRef"
+
+    Event:
+      type: object
+      required: [id, name, description, startDate, endDate, location, category, status, capacity, remainingSeats, organizerId]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        startDate:
+          $ref: "#/components/schemas/DateTime"
+        endDate:
+          $ref: "#/components/schemas/DateTime"
+        location:
+          $ref: "#/components/schemas/NamedRef"
+        category:
+          $ref: "#/components/schemas/NamedRef"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        capacity:
+          type: integer
+          minimum: 1
+        remainingSeats:
+          type: integer
+          minimum: 0
+        organizerId:
+          $ref: "#/components/schemas/Uuid"
+
+    EventSummary:
+      type: object
+      required: [id, name, startDate, endDate, location, status]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        startDate:
+          $ref: "#/components/schemas/DateTime"
+        endDate:
+          $ref: "#/components/schemas/DateTime"
+        location:
+          $ref: "#/components/schemas/NamedRef"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+
+    EventPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+
+    BookingInput:
+      type: object
+      required: [quantity]
+      additionalProperties: false
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    Booking:
+      type: object
+      required: [id, event, quantity, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        event:
+          $ref: "#/components/schemas/EventSummary"
+        quantity:
+          type: integer
+          minimum: 1
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        createdAt:
+          $ref: "#/components/schemas/DateTime"
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - UNAUTHENTICATED
+        - FORBIDDEN
+        - NOT_FOUND
+        - EMAIL_ALREADY_USED
+        - INSUFFICIENT_SEATS
+        - ACTIVE_BOOKINGS
+        - CAPACITY_BELOW_RESERVED
+
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+    Error:
+      type: object
+      required: [statusCode, code, message]
+      properties:
+        statusCode:
+          type: integer
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        message:
+          type: string
+          description: Message affiché à l'utilisateur.
+        details:
+          type: array
+          description: Présent uniquement pour `VALIDATION_ERROR`.
+          items:
+            $ref: "#/components/schemas/FieldError"
