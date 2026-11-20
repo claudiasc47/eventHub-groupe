@@ -23,4 +23,13 @@ export class UsersService {
         });
         return this.users.save(user);
     }
+
+    findByEmailWithPassword(email: string) {
+        return this.users
+            .createQueryBuilder('u')
+            .addSelect('u.passwordHash')
+            .where('u.email = :email', { email: email.toLowerCase() })
+            .getOne();
+    }
 }
+
