@@ -7,7 +7,10 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly users: UsersService, private readonly jwt: JwtService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly jwt: JwtService,
+  ) {}
 
   async login(dto: LoginDto) {
     const user = await this.users.findByEmailWithPassword(dto.email);
@@ -20,7 +23,10 @@ export class AuthService {
       });
     }
 
-    const access_token = await this.jwt.signAsync({ sub: user.id, role: user.role });
+    const access_token = await this.jwt.signAsync({
+      sub: user.id,
+      role: user.role,
+    });
     return { access_token, user: toUserResponse(user) };
   }
 }

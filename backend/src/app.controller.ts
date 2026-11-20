@@ -5,7 +5,10 @@ import { DataSource } from 'typeorm';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService, private readonly db: DataSource) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly db: DataSource,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -22,8 +25,9 @@ export class AppController {
     }
 
     const status = database === 'up' ? 'ok' : 'degraded';
-    res.status(status === 'ok' ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE);
+    res.status(
+      status === 'ok' ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE,
+    );
     return { status, api: 'up', database };
-
   }
 }
