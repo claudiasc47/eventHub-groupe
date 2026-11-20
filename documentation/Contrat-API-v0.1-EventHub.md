@@ -61,7 +61,7 @@ Booking       = { id, event: EventSummary, quantity, status, createdAt }
 ```
 
 1. Utiliser `camelCase` pour les propriétés JSON. Seule exception : `access_token`, conservé pour la compatibilité avec le Front actuel.
-2. Exposer les identifiants comme des chaînes UUID. Les dates d’événement sont sans heure, au format `YYYY-MM-DD`, avec `endDate >= startDate`. `birthDate` suit le même format. `createdAt` est un horodatage ISO 8601 en UTC.
+2. Exposer les identifiants comme des chaînes UUID. Les dates d’événement (`startDate`, `endDate`) sont des horodatages ISO 8601 en UTC (`date-time`, ex. `2026-12-15T20:00:00Z`), avec `endDate >= startDate`. `birthDate` est une date sans heure au format `YYYY-MM-DD`. `createdAt` est un horodatage ISO 8601 en UTC.
 3. Les champs optionnels absents valent `null` en réponse (`description`, `firstName`, `lastName`, `phone`, `birthDate`). `password` n’apparaît jamais dans une réponse.
 4. Statuts en majuscules. `Event.status` vaut `DRAFT` ou `PUBLISHED`. `Booking.status` vaut `CONFIRMED` ou `CANCELLED`.
 5. Contraintes de saisie : `password` de 8 caractères minimum, `pseudo` de 3 à 30 caractères, `capacity` entier strictement positif.
