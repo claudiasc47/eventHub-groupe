@@ -21,14 +21,16 @@ Avec Docker, `docker compose up` à la racine lance aussi le service `web`.
 
 ## Scripts
 
-| Commande | Rôle |
-| --- | --- |
-| `npm run dev` | Serveur de développement Vite |
-| `npm run build` | Vérification TypeScript puis build de production dans `dist/` |
-| `npm run lint` | Lint (oxlint) |
-| `npm test` | Tests (Vitest + React Testing Library), lancement unique comme en CI |
-| `npm run test:watch` | Tests relancés à chaque modification |
-| `npm run gen:api` | Régénère `src/api/schema.d.ts` depuis `documentation/openapi.yaml` |
+| Commande               | Rôle                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| `npm run dev`          | Serveur de développement Vite                                        |
+| `npm run build`        | Vérification TypeScript puis build de production dans `dist/`        |
+| `npm run lint`         | Lint (oxlint)                                                        |
+| `npm run format`       | Formate le code avec Prettier                                        |
+| `npm run format:check` | Vérifie le formatage sans modifier les fichiers                      |
+| `npm test`             | Tests (Vitest + React Testing Library), lancement unique comme en CI |
+| `npm run test:watch`   | Tests relancés à chaque modification                                 |
+| `npm run gen:api`      | Régénère `src/api/schema.d.ts` depuis `documentation/openapi.yaml`   |
 
 ## Appels API
 

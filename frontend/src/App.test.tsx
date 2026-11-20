@@ -12,7 +12,9 @@ describe('App', () => {
     renderAt('/events/new')
 
     expect(screen.getByRole('navigation')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: 'Créer un événement' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Créer un événement' }),
+    ).toBeInTheDocument()
   })
 
   it('affiche la page introuvable pour une route inconnue', () => {
