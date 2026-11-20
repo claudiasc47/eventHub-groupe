@@ -64,3 +64,58 @@ body {
   margin: 0 auto;
   padding: 1.5rem 1rem;
 }
+
+.auth-page {
+  max-width: 28rem;
+}
+
+.auth-page a {
+  color: var(--accent);
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-form label,
+.auth-form input {
+  display: block;
+}
+
+.auth-form input {
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.auth-form [aria-invalid='true'] {
+  border-color: currentColor;
+}
+
+.auth-form [role='alert'] {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
+.auth-form button {
+  justify-self: start;
+}
+
+.profile-details {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-details dt {
+  font-weight: 600;
+}
+
+.profile-details dd {
+  margin: 0;
+}

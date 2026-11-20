@@ -22,7 +22,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-function readToken(): string | null {
+export function readToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_STORAGE_KEY)
   } catch {

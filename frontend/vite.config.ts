@@ -1,9 +1,10 @@
 import react from '@vitejs/plugin-react'
+import { msw } from 'msw/vite'
 import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), msw()],
   // Écoute sur toutes les interfaces pour être joignable depuis le conteneur `web` (docker-compose).
   // Le port 5173 est l'origine autorisée par le CORS de l'API (CORS_ORIGIN).
   server: {
