@@ -5,6 +5,9 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { UserRole } from './user.entity';
 
 @Controller('users')
 export class UsersController {
@@ -27,5 +30,13 @@ export class UsersController {
             });
         }
         return toUserResponse(user);
+    }
+    @Get()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiBearerAuth()
+    async list() {
+        const all = await this.users.findAll();
+        return all.map(toUserResponse);
     }
 }

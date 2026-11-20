@@ -34,5 +34,8 @@ export class UsersService {
     findById(id: string) {
         return this.users.findOneBy({ id });
     }
+    findAll() {
+        return this.users.find({ order: { createdAt: 'ASC' } });
+    }
 }
 
