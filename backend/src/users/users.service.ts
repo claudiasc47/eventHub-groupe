@@ -31,5 +31,8 @@ export class UsersService {
             .where('u.email = :email', { email: email.toLowerCase() })
             .getOne();
     }
+    findById(id: string) {
+        return this.users.findOneBy({ id });
+    }
 }
 
