@@ -5,7 +5,7 @@ import { DataSource } from 'typeorm';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService, private readonly db: DataSource) {}3
+  constructor(private readonly appService: AppService, private readonly db: DataSource) {}
 
   @Get()
   getHello(): string {
