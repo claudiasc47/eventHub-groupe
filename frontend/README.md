@@ -47,3 +47,9 @@ Avec Docker, `docker compose up` à la racine lance aussi le service `web`.
 Les tests sont à côté du code (`*.test.ts` / `*.test.tsx`). `src/test/setup.ts` ajoute les
 matchers `jest-dom` (`toBeInTheDocument()`…) et une valeur fictive de `VITE_API_URL` est fournie
 par `vite.config.ts`. `src/App.test.tsx` sert d'exemple de test d'écran.
+
+Les tests d'authentification interceptent les requêtes HTTP avec MSW. Pour les
+essayer dans le navigateur, mettre `VITE_MOCK_AUTH=true` dans `.env` et relancer Vite.
+Le compte fictif `demo@example.test` utilise le mot de passe `demo-eventhub`.
+Les comptes créés et les sessions simulées existent en mémoire jusqu'au rechargement.
+Pour utiliser l'API réelle, laisser `VITE_MOCK_AUTH=false` et configurer `VITE_API_URL`.

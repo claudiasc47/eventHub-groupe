@@ -1,14 +1,20 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useNavigate } from 'react-router'
+import { clearSession, useSessionToken } from '../auth/session'
 
 const NAV_LINKS = [
   { to: '/', label: 'Catalogue' },
   { to: '/events/new', label: 'Créer un événement' },
-  { to: '/profile', label: 'Profil' },
-  { to: '/login', label: 'Connexion' },
-  { to: '/register', label: 'Inscription' },
 ]
 
 export function Layout() {
+  const token = useSessionToken()
+  const navigate = useNavigate()
+
+  function logout() {
+    clearSession()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <>
       <header className="site-header">
@@ -19,6 +25,19 @@ export function Layout() {
               {label}
             </NavLink>
           ))}
+          {token ? (
+            <>
+              <NavLink to="/profile">Profil</NavLink>
+              <button type="button" onClick={logout}>
+                Se déconnecter
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login">Connexion</NavLink>
+              <NavLink to="/register">Inscription</NavLink>
+            </>
+          )}
         </nav>
       </header>
       <main className="site-main">

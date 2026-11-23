@@ -1,7 +1,15 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_URL?.trim();
+
+if (!baseURL) {
+  throw new Error(
+    "VITE_API_URL est requise : copiez .env.example vers .env dans services/users-service/ui, puis relancez Vite."
+  );
+}
+
 const api = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL,
 });
 
 api.interceptors.request.use((config) => {
