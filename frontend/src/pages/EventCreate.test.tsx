@@ -142,8 +142,29 @@ describe('Création d’événement — organisateur', () => {
     await fillForm(user, { start: '2026-12-15T20:00', end: '2026-12-15T18:00' })
     await submit(user)
 
-    expect(await screen.findByText('La fin doit être après le début.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('La fin doit être postérieure ou égale au début.'),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText(/^Fin/)).toHaveAttribute('aria-invalid', 'true')
+    expect(calls).toBe(0)
+  })
+
+  it('signale les champs obligatoires manquants sans appeler l’API', async () => {
+    let calls = 0
+    server.use(
+      http.post(eventsURL, () => {
+        calls += 1
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderPage()
+
+    await screen.findByRole('option', { name: demoLocations[0].name })
+    await submit(user)
+
+    expect(screen.getByLabelText(/^Nom/)).toHaveAccessibleDescription('Le nom est obligatoire.')
+    expect(screen.getByLabelText(/^Lieu/)).toHaveAccessibleDescription('Choisissez un lieu.')
+    expect(screen.getByLabelText(/^Capacité/)).toHaveAttribute('aria-invalid', 'true')
     expect(calls).toBe(0)
   })
 
