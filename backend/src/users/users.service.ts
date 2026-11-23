@@ -4,8 +4,8 @@ import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { RegisterDto } from './dto/register.dto';
 import { User } from './user.entity';
-import { MailService } from 'src/mail/mail.service';
-import { createVerificationToken, hashToken, TOKEN_LIFETIME_MS } from 'src/common/utils/verification-token';
+import { MailService } from '../mail/mail.service';
+import { createVerificationToken, hashToken, TOKEN_LIFETIME_MS } from '../common/utils/verification-token';
 
 const RESEND_COOLDOWN_MS = 60_000;
 @Injectable()
