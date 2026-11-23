@@ -35,3 +35,17 @@ function subscribe(onChange: () => void) {
 export function useSessionToken() {
   return useSyncExternalStore(subscribe, readToken)
 }
+
+// Rôle enregistré à la connexion. Sert seulement à adapter l'interface :
+// l'API reste seule juge des droits (403).
+function readRole(): string | null {
+  try {
+    return localStorage.getItem('role')
+  } catch {
+    return null
+  }
+}
+
+export function useSessionRole() {
+  return useSyncExternalStore(subscribe, readRole)
+}

@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_AUTH?: string
   readonly VITE_MOCK_BOOKINGS?: string
   readonly VITE_MOCK_ORGANIZER?: string
+  readonly VITE_MOCK_EVENTS?: string
 }
 
 interface ImportMeta {

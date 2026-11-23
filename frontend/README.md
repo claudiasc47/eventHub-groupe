@@ -95,6 +95,18 @@ explicite signale la simulation. Il ne modifie pas le rôle du compte en base.
 Pour tester les droits et les événements réels, désactiver ce mode et utiliser
 un compte organisateur fourni par le Back.
 
+## Création d’événement
+
+La route `/events/new` est réservée aux comptes `organizer` (`RequireRole` : sans session,
+redirection vers `/login` ; avec un autre rôle, message d’accès refusé). Elle charge
+`GET /locations` et `GET /categories`, puis envoie `POST /events`. Les dates saisies en heure
+locale sont converties en horodatage ISO 8601 UTC, comme l’exige le contrat. L’événement est
+créé en brouillon ; sa publication se fait ensuite depuis `/events/:id/edit`
+(section suivante).
+
+Pour la démonstration locale, ajouter `VITE_MOCK_EVENTS=true` (lieux, catégories, création)
+et `VITE_MOCK_AUTH=true`, puis se connecter avec `organizer@example.test` / `demo-eventhub`.
+
 ## Modification et publication
 
 La route `/events/:id/edit` charge le profil, l’événement, les lieux et les

@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw/http'
 import type { Event, EventUpdate, User } from '../api/types'
 
 export const demoOrganizer: User = {
-  id: '17de1089-12ef-46d3-89ab-916db978cbb5',
+  id: '5b0f3c1e-8a2d-4c6e-9f10-2d3e4f5a6b7c',
   email: 'organizer@example.test',
   pseudo: 'organisateur-demo',
   firstName: null, lastName: null, phone: null, birthDate: null,

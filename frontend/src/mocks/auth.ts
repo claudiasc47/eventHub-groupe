@@ -7,6 +7,7 @@ import type {
   RegisterInput,
   User,
 } from '../api/types'
+import { demoOrganizer } from './organizer'
 
 export const demoUser: User = {
   id: '17de1089-12ef-46d3-89ab-916db978cbb5',
@@ -48,7 +49,10 @@ function isDateOnly(value: string) {
 
 export function createAuthHandlers(baseURL: string) {
   const base = baseURL.replace(/\/$/, '')
-  const accounts = new Map([[demoUser.email, { user: demoUser, password: demoPassword }]])
+  const accounts = new Map([
+    [demoUser.email, { user: demoUser, password: demoPassword }],
+    [demoOrganizer.email, { user: demoOrganizer, password: demoPassword }],
+  ])
   const sessions = new Map<string, User>()
 
   return [

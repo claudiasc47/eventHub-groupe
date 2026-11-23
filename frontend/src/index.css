@@ -65,7 +65,8 @@ body {
   padding: 1.5rem 1rem;
 }
 
-.auth-page {
+.auth-page,
+.form-page {
   max-width: 28rem;
 }
 
@@ -73,17 +74,25 @@ body {
   color: var(--accent);
 }
 
-.auth-form {
+.auth-form,
+.event-form {
   display: grid;
   gap: 1rem;
 }
 
 .auth-form label,
-.auth-form input {
+.auth-form input,
+.event-form label,
+.event-form input,
+.event-form select,
+.event-form textarea {
   display: block;
 }
 
-.auth-form input {
+.auth-form input,
+.event-form input,
+.event-form select,
+.event-form textarea {
   width: 100%;
   margin-top: 0.25rem;
   border: 1px solid var(--muted);
@@ -94,16 +103,19 @@ body {
   font: inherit;
 }
 
-.auth-form [aria-invalid='true'] {
+.auth-form [aria-invalid='true'],
+.event-form [aria-invalid='true'] {
   border-color: currentColor;
 }
 
-.auth-form [role='alert'] {
+.auth-form [role='alert'],
+.event-form [role='alert'] {
   margin: 0.25rem 0 0;
   font-weight: 600;
 }
 
-.auth-form button {
+.auth-form button,
+.event-form button {
   justify-self: start;
 }
 
