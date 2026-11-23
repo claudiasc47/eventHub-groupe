@@ -72,8 +72,8 @@ describe('UsersService', () => {
         email: 'alice@example.com',
         pseudo: 'alice',
         passwordHash: 'hashed-password',
-        verificationTokenHash: expect.any(String),
-        verificationTokenExpiresAt: expect.any(Date),
+        verificationTokenHash: expect.any(String) as string,
+        verificationTokenExpiresAt: expect.any(Date) as Date,
       })
       expect(repository.save).toHaveBeenCalledWith(savedUser)
       expect(result).toBe(savedUser)
