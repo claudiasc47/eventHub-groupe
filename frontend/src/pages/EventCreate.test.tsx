@@ -6,6 +6,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import App from '../App'
 import type { Role } from '../api/types'
 import { createEventHandlers, demoCategories, demoLocations } from '../mocks/events'
+import { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } from '../mocks/organizer'
+import { createEventStore } from '../mocks/store'
 
 const base = import.meta.env.VITE_API_URL!
 const eventsURL = `${base}/events`
@@ -127,6 +129,25 @@ describe('Création d’événement — organisateur', () => {
         },
       },
     ])
+  })
+
+  it('retrouve l’événement créé sur la page de modification et dans « Mes événements »', async () => {
+    const store = createEventStore(demoOrganizerEvents)
+    server.resetHandlers(
+      ...createOrganizerHandlers(base, demoOrganizerEvents, demoOrganizer, store),
+      ...createEventHandlers(base, store),
+    )
+    const { user } = renderPage()
+
+    await fillForm(user)
+    await submit(user)
+    await user.click(await screen.findByRole('link', { name: 'Modifier ou publier l’événement' }))
+
+    expect(await screen.findByLabelText('Nom')).toHaveValue('Concert Jazz')
+    expect(screen.getByText('Brouillon')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: '← Mes événements' }))
+    const list = await screen.findByRole('list', { name: 'Vos événements' })
+    expect(list).toHaveTextContent('Concert Jazz')
   })
 
   it('refuse une fin antérieure au début sans appeler l’API', async () => {
