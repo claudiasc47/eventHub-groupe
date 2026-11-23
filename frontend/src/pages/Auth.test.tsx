@@ -9,7 +9,7 @@ import { NETWORK_ERROR_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../api/errors'
 import type { ApiError, LoginResponse } from '../api/types'
 import { createAuthHandlers, demoUser } from '../mocks/auth'
 
-const base = import.meta.env.VITE_API_URL
+const base = import.meta.env.VITE_API_URL!
 const registerURL = `${base}/users/register`
 const loginURL = `${base}/auth/login`
 const profileURL = `${base}/users/me`

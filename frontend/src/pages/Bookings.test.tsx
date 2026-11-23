@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import App from '../App'
 import { createBookingHandlers, demoBookings } from '../mocks/bookings'
 
-const base = import.meta.env.VITE_API_URL
+const base = import.meta.env.VITE_API_URL!
 const server = setupServer()
 const showModal = HTMLDialogElement.prototype.showModal
 const close = HTMLDialogElement.prototype.close
