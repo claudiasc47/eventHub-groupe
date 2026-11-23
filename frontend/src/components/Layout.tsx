@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { clearSession, useSessionToken } from '../auth/session'
+import { ThemeButton } from './ThemeButton'
 
 const NAV_LINKS = [
   { to: '/', label: 'Catalogue' },
@@ -27,6 +28,7 @@ export function Layout() {
           ))}
           {token ? (
             <>
+              <NavLink to="/me/bookings">Mes réservations</NavLink>
               <NavLink to="/profile">Profil</NavLink>
               <button type="button" onClick={logout}>
                 Se déconnecter
@@ -39,6 +41,7 @@ export function Layout() {
             </>
           )}
         </nav>
+        <ThemeButton />
       </header>
       <main className="site-main">
         <Outlet />

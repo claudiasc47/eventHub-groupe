@@ -1,58 +1,80 @@
 # Tests Front — Inscription, connexion, profil et déconnexion
 
-Ce bilan couvre les écrans React historiques et le bouton de déconnexion de la barre de navigation. Le transfert vers `frontend/` et l’intégration de MSW attendent la fusion de la PR de Robin.
+Ce bilan couvre le parcours compte intégré dans `frontend/` : inscription, connexion, profil et déconnexion locale. Les écrans initialement adaptés dans `services/users-service/ui/` ont été transférés vers le squelette React, TypeScript et Vite, avec les mocks MSW et les tests Vitest / React Testing Library.
+
+L’intégration a été fusionnée dans `main` par la [PR #94](https://github.com/claudiasc47/eventHub-groupe/pull/94), au commit `a93041f`. La validation avec l’API réelle reste à effectuer.
 
 ## Référence du contrat
 
-Les deux fichiers ont été examinés dans `origin/main` au commit `caf4f616ed380cd3874420411f3f3504754db2a8`.
-
 | Source | Version et sections examinées |
 | --- | --- |
-| `documentation/Contrat-API-v0.1-EventHub.md` | Contrat v0.1 validé par l’équipe le 13 novembre 2026, ajouté au commit `e3b31c1f3c25ba9ffc5f10479151e582bc600295`. Sections « Connexion Front/Back » (ligne 17), « Routes » (25), « Formats JSON » (51), « Erreurs » (75) et déconnexion locale (107). |
-| `documentation/openapi.yaml` | OpenAPI 3.1.0, version d’API `0.1.0`, ajouté au commit `0d7fd9c9c82dcacb612cf78dc9adbbcb8a2813fd`. Opérations d’inscription (ligne 40), de connexion (73) et de profil (96). Schémas `RegisterInput` (577), `LoginInput` (604), `LoginResponse` (616), `User` (626) et `Error` (838). |
+| [Contrat d’API v0.1](Contrat-API-v0.1-EventHub.md) | Contrat validé le 13 novembre 2026. Sections « Connexion Front/Back », « Routes », « Formats JSON », « Erreurs » et déconnexion locale. |
+| [OpenAPI](openapi.yaml) | OpenAPI 3.1.0, version d’API `0.1.0`. Opérations d’inscription, de connexion et de profil ; schémas `RegisterInput`, `LoginInput`, `LoginResponse`, `User` et `Error`. |
 
-Fichiers Front examinés : [Register.jsx](../services/users-service/ui/src/pages/Register.jsx), [Login.jsx](../services/users-service/ui/src/pages/Login.jsx), [Profile.jsx](../services/users-service/ui/src/pages/Profile.jsx), [Navbar.jsx](../services/users-service/ui/src/components/Navbar.jsx) et [client Axios](../services/users-service/ui/src/api.js).
+Fichiers concernés : [RegisterPage.tsx](../frontend/src/pages/RegisterPage.tsx), [LoginPage.tsx](../frontend/src/pages/LoginPage.tsx), [ProfilePage.tsx](../frontend/src/pages/ProfilePage.tsx), [Layout.tsx](../frontend/src/components/Layout.tsx), [gestion de session](../frontend/src/auth/session.ts) et [client Axios](../frontend/src/api/client.ts).
 
 ## Requêtes et formats communs
 
-- **Inscription** — `POST /api/users/register`, route publique, JSON `{ email, password, pseudo, firstName?, lastName?, phone?, birthDate? }`. `email` respecte le format e-mail, `password` fait au moins 8 caractères et `pseudo` entre 3 et 30. Les quatre champs facultatifs peuvent être omis ou valoir `null`. La date renseignée suit `YYYY-MM-DD`, sans heure. Le corps ne contient pas de `role`.
-- **Connexion** — `POST /api/auth/login`, route publique, JSON `{ email, password }`.
-- **Profil** — `GET /api/users/me`, sans corps, avec `Authorization: Bearer <access_token>` pour une session authentifiée.
-- **Réponse `User`** — `{ id, email, pseudo, firstName, lastName, phone, birthDate, role }`. `id` est un UUID. Les quatre champs de profil facultatifs sont présents et valent `null` quand ils ne sont pas renseignés. `role` vaut `participant`, `organizer` ou `admin`.
-- **Erreurs documentées** — `{ statusCode, code, message }`. Pour `VALIDATION_ERROR`, `details` décrit les champs en erreur sous la forme `[{ field, message }]`. Les exemples OpenAPI illustrent les messages. Leur libellé exact peut varier.
+- **Inscription** — `POST /api/users/register`, route publique, JSON `{ email, password, pseudo, firstName?, lastName?, phone?, birthDate? }`. Le mot de passe comporte au moins 8 caractères et le pseudo entre 3 et 30. Les champs facultatifs vides sont omis par le formulaire. `birthDate` suit `YYYY-MM-DD`, sans heure. Aucun rôle n’est envoyé.
+- **Connexion** — `POST /api/auth/login`, route publique, JSON `{ email, password }`. La réponse attendue contient `{ access_token, user }`.
+- **Profil** — `GET /api/users/me`, avec `Authorization: Bearer <access_token>`.
+- **Réponse `User`** — `{ id, email, pseudo, firstName, lastName, phone, birthDate, role }`. Les quatre champs facultatifs valent `null` lorsqu’ils ne sont pas renseignés. Le rôle vaut `participant`, `organizer` ou `admin`.
+- **Erreurs** — `{ statusCode, code, message }`, avec `details: [{ field, message }]` pour `VALIDATION_ERROR`.
+- **Session locale** — La connexion enregistre `token`, `role` et `email`. La déconnexion les supprime sans appel HTTP. Un `401` reçu lors du chargement du profil efface également la session et redirige vers `/login`.
 
-## Scénarios de recette
+## Tests automatisés et mocks
 
-La colonne « Simulations effectuées » décrit les vérifications en mémoire faites sur le Front historique avec des réponses HTTP, des états de composant et un stockage simulés. La colonne « Tests MSW à faire » décrit la future suite. Aucun scénario n’a été exécuté avec MSW, dans un navigateur ou sur l’API réelle.
+La suite [Auth.test.tsx](../frontend/src/pages/Auth.test.tsx) utilise Vitest, React Testing Library et MSW. Les [handlers partagés](../frontend/src/mocks/auth.ts) simulent les trois routes du parcours compte. Le stockage local et les handlers sont réinitialisés entre les tests.
 
-| Scénario | Requête et réponse à simuler | Comportement attendu dans l’interface | Simulations effectuées | Tests MSW à faire |
-| --- | --- | --- | --- | --- |
-| **Inscription réussie** | Inscription valide → `201`, `User` avec `role: "participant"`, sans jeton. | Redirection vers `/login`. | Corps envoyé sans `role`, champs vides omis et redirection. | Intercepter le POST et vérifier le corps, la redirection et l’absence de création de session. |
-| **Données d’inscription invalides** | Inscription → `400`, `{ statusCode: 400, code: "VALIDATION_ERROR", message, details: [{ field, message }] }`. | Message sous chaque champ signalé. Le formulaire reste affiché. | Erreur associée au pseudo. | Renvoyer plusieurs erreurs dans une même réponse et vérifier leur association aux champs. |
-| **E-mail déjà utilisé** | Inscription → `409`, `{ statusCode: 409, code: "EMAIL_ALREADY_USED", message }`. | Message sous l’e-mail et maintien sur le formulaire. | Affichage sous le bon champ et absence de redirection. | Vérifier le rendu du conflit et la possibilité de corriger l’e-mail. |
-| **Connexion réussie** | Connexion valide → `200`, `{ access_token: string, user: User }`. | Stockage de `token`, `role` et `email`, puis ouverture de `/profile`. | Stockage des trois valeurs et redirection. | Rejouer la connexion puis vérifier le JWT transmis à la requête de profil. |
-| **Données de connexion invalides** | Connexion → `400`, `{ statusCode: 400, code: "VALIDATION_ERROR", message, details: [{ field, message }] }`. | Le message global apparaît dans le formulaire, sans création de session. | Affichage du `message` global. | Rejouer le `400` pendant une soumission du formulaire. |
-| **Identifiants incorrects** | Connexion → `401`, `{ statusCode: 401, code: "UNAUTHENTICATED", message }`. | « Email ou mot de passe incorrect » dans le formulaire, sans création de session. | Message, maintien sur `/login` et absence d’écriture de session. | Vérifier la distinction entre le `401` de connexion et une panne réseau. |
-| **Profil complet** | Profil avec JWT valide → `200`, `User` avec les quatre champs de profil renseignés. | Chargement, puis affichage du pseudo, de l’e-mail, du rôle et des informations de profil. | Chargement, en-tête `Bearer`, valeurs et date `YYYY-MM-DD`. | Retarder la réponse pour vérifier le chargement, puis contrôler les valeurs affichées. |
-| **Champs facultatifs absents** | Profil avec JWT valide → `200`, `User` avec `firstName: null`, `lastName: null`, `phone: null`, `birthDate: null`. | « Non renseigné » pour chacune de ces valeurs. | Rendu avec les quatre valeurs à `null`. | Rejouer le profil avec le corps exact, en conservant les clés à `null`. |
-| **Session expirée** | Profil avec JWT expiré → `401`, `{ statusCode: 401, code: "UNAUTHENTICATED", message }`. | Effacement de `token`, `role` et `email`, puis redirection vers `/login`. | `401` avec ou sans jeton, nettoyage et redirection. | Partir d’une session stockée, renvoyer `401` et vérifier les trois suppressions. |
-| **Panne réseau** | Un des trois appels ne reçoit aucune réponse HTTP. | Message d’API inaccessible sur la connexion et le profil. Message de repli sur l’inscription. Le profil conserve la session. | Connexion et profil. | Couvrir les trois appels et vérifier la conservation de la session sur le profil. |
-| **Erreur serveur** | Un des trois appels reçoit un `5xx`. **Pour la recette, utiliser un `503` sans corps.** Le contrat ne précise ni statut `5xx` particulier ni format pour ce cas. | Message de repli. Le profil conserve la session. | `503` sur la connexion et le profil. | Couvrir les trois appels et vérifier que le `503` ne provoque pas la redirection prévue pour un `401`. |
-| **Déconnexion locale** | Aucune requête ni réponse HTTP. Le contrat prévoit l’effacement de la session locale. | Le bouton efface `token`, `role` et `email`, puis ouvre `/login`. | Suppression des trois valeurs, redirection et aucun appel HTTP de déconnexion. | Intégrer cette action au scénario connecté et vérifier les requêtes émises. |
-| **Accès au profil après déconnexion** | Si l’écran lance `GET /api/users/me` sans en-tête `Authorization` → `401`, `{ statusCode: 401, code: "UNAUTHENTICATED", message }`. | Retour vers `/login` et absence des données du profil précédent. | Réouverture simulée sans JWT ni affichage des données précédentes. | Rejouer l’accès direct après déconnexion et vérifier la requête si elle est émise. |
+| Scénario | Situation simulée | Vérifications automatisées |
+| --- | --- | --- |
+| **Inscription réussie** | `201`, profil minimal puis complet. | Corps sans rôle, champs vides omis, date sans heure, redirection vers `/login` et absence de session créée. |
+| **Inscription invalide** | `400 VALIDATION_ERROR`, détails pour le pseudo et la date de naissance. | Messages associés aux champs avec `aria-describedby`, maintien sur le formulaire. |
+| **E-mail déjà utilisé** | `409 EMAIL_ALREADY_USED`. | Message sous l’e-mail, attribut `aria-invalid`, correction puis inscription réussie. |
+| **Connexion et profil complet** | `200`, jeton simulé puis réponse de profil retardée. | Corps de connexion, stockage de session, en-tête `Bearer`, redirection, chargement et affichage du profil. |
+| **Connexion invalide** | `400 VALIDATION_ERROR`. | Message global, maintien sur `/login` et absence de session. |
+| **Identifiants incorrects** | `401 UNAUTHENTICATED`. | Message « Email ou mot de passe incorrect. » et absence de session. |
+| **Champs facultatifs absents** | Inscription minimale puis connexion avec les handlers partagés. | Quatre valeurs « Non renseigné », pseudo et rôle `participant` affichés. |
+| **Session expirée** | Jeton stocké rejeté par le mock de profil avec `401`. | Suppression des trois valeurs de session et redirection vers `/login`. |
+| **Panne réseau** | Absence de réponse sur chacun des trois appels. | Message de repli, maintien sur la page et conservation de la session sur le profil. |
+| **Erreur serveur** | `503` sans corps sur chacun des trois appels. | Message générique, maintien sur la page et conservation de la session sur le profil. |
+| **Déconnexion et retour arrière** | Déconnexion locale puis retour dans l’historique. | Suppression de session, redirection, absence d’appel HTTP de déconnexion et de réaffichage du profil. |
+| **Profil sans jeton** | Accès direct à `/profile` sans session. | Redirection vers `/login` avant toute requête de profil. |
+
+Les tests vérifient le comportement du Front face à des réponses simulées. Ils ne valident ni la persistance PostgreSQL, ni la signature ou l’expiration réelle des JWT, ni la conformité des réponses du Back à OpenAPI.
+
+## Résultats de validation locale
+
+Vérifications effectuées le 23 novembre 2026 sur la branche `claudia`, au commit `61e3208`, avant sa fusion dans `main` :
+
+| Commande, depuis `frontend/` | Résultat |
+| --- | --- |
+| `npm ci` | Installation réussie ; aucune vulnérabilité signalée par l’audit npm. |
+| `npm run lint` | Aucun avertissement ni erreur. |
+| `npm test` | 3 fichiers réussis, soit 24 tests : 16 pour le parcours compte, 6 pour les erreurs API et 2 pour le routage et la navigation. |
+| `npm run build` | Vérification TypeScript et build de production Vite réussis. |
+
+Le nombre de tests ne constitue pas une mesure de couverture de code. Le rapport de couverture et le test de bout en bout sur l’API réelle restent à produire.
 
 ## Vérifications encore à faire
 
-### Dans le navigateur après intégration
+### Dans le navigateur
 
-- Exécuter avec MSW le parcours inscription → connexion → profil → déconnexion. Vérifier les erreurs à leur emplacement dans les formulaires et les états de chargement.
-- Après déconnexion, utiliser le bouton Retour, ouvrir directement `/profile` et recharger la page. Vérifier l’affichage, le stockage et les requêtes dans les outils du navigateur.
-- Rejouer une panne réseau et une réponse serveur pour vérifier que les écrans restent utilisables et que la session du profil est conservée.
+Pour utiliser les mocks en développement, définir `VITE_MOCK_AUTH=true` dans `frontend/.env` et relancer Vite. Le compte fictif est `demo@example.test` / `demo-eventhub`. Les comptes créés et les sessions simulées restent en mémoire jusqu’au rechargement.
+
+- Rejouer le parcours inscription → connexion → profil → déconnexion et vérifier les chargements et messages d’erreur.
+- Après déconnexion, utiliser le bouton Retour, ouvrir directement `/profile` et recharger la page. Contrôler l’affichage, le stockage et les requêtes.
+- Vérifier la navigation au clavier, la visibilité du focus et le rendu sur mobile.
 
 ### Avec l’API réelle, mocks désactivés
 
-- Créer un compte avec les seuls champs obligatoires, vérifier le rôle `participant`, puis soumettre la même adresse pour obtenir le `409`. Contrôler également la forme du `400` et les noms de champs renvoyés dans `details`.
-- Vérifier la connexion valide et le `401` sur mauvais mot de passe. Ouvrir le profil avec le JWT obtenu et contrôler les champs facultatifs à `null`, puis le rendu d’un compte dont le profil est renseigné.
-- Vérifier le `401` après expiration réelle du JWT, dont la durée de vie contractuelle est d’une heure. Rejouer la déconnexion locale et l’accès direct au profil sans jeton.
+Définir `VITE_MOCK_AUTH=false`, configurer `VITE_API_URL` puis relancer Vite.
 
-L’API locale était inaccessible lors de la dernière vérification. La référence Back examinée, `origin/feature/api` au commit `3c60d74fb1f9bc0a65b327bb9c0c49f11352b485`, ne déclarait pas encore ces trois routes métier dans `backend/`.
+- Créer un compte minimal puis complet ; vérifier le rôle `participant` et les champs facultatifs.
+- Soumettre une adresse déjà utilisée pour vérifier le `409`. Contrôler le format du `400` et les noms de champs dans `details`.
+- Vérifier la connexion valide, le `401` sur mauvais mot de passe et le chargement du profil avec le JWT obtenu.
+- Vérifier le `401` après expiration réelle du JWT, dont la durée contractuelle est d’une heure, puis la suppression de session et la redirection.
+- Rejouer la déconnexion locale et l’accès direct au profil sans jeton.
+- Consigner les écarts avec le contrat, les étapes de reproduction et les tickets de correction associés.
+
+Les routes d’inscription, de connexion et de profil sont présentes dans le Back de `main`. Leur présence dans le code ne vaut pas validation du parcours intégré ; aucune recette sur l’API réelle n’est attestée dans ce bilan.

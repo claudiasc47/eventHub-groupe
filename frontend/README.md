@@ -53,3 +53,37 @@ essayer dans le navigateur, mettre `VITE_MOCK_AUTH=true` dans `.env` et relancer
 Le compte fictif `demo@example.test` utilise le mot de passe `demo-eventhub`.
 Les comptes créés et les sessions simulées existent en mémoire jusqu'au rechargement.
 Pour utiliser l'API réelle, laisser `VITE_MOCK_AUTH=false` et configurer `VITE_API_URL`.
+
+## Mes réservations
+
+La route `/me/bookings` nécessite une session. Elle consomme `GET /me/bookings`
+et `PATCH /bookings/{id}/cancel` selon le contrat. L’annulation demande une
+confirmation ; une erreur conserve la réservation et permet une nouvelle tentative.
+
+Pour tester l’écran avant la disponibilité des endpoints, définir
+`VITE_MOCK_BOOKINGS=true` dans `frontend/.env`, puis relancer Vite. Ce mode
+intercepte uniquement les routes de réservations et affiche une mention de
+démonstration. Il peut être utilisé avec une connexion réelle ou avec
+`VITE_MOCK_AUTH=true`. Les réservations simulées sont isolées par jeton et
+réinitialisées au rechargement. Elles ne prouvent pas la persistance côté Back.
+
+Avec Docker, après modification de `frontend/.env` :
+
+```bash
+docker compose restart web
+```
+
+Pour la recette réelle, définir `VITE_MOCK_BOOKINGS=false`. Si les endpoints
+ne sont pas disponibles, l’écran affiche une erreur et un bouton « Réessayer ».
+
+## Thèmes et visuel
+
+`src/design.css` contient les couleurs et styles partagés. Le bouton de navigation
+permet de choisir le thème clair vert pâle ou le thème sombre. Le choix est conservé
+localement ; à défaut, la préférence du système est utilisée.
+
+Le visuel du bandeau est stocké dans `src/assets/eventhub-venue.png`. Vite gère
+son URL et son nom de fichier versionné lors du build, sans requête vers un hébergeur
+externe. Il est décoratif et ne contient aucune information nécessaire au parcours.
+Une version WebP peut remplacer le PNG sous le nom `eventhub-venue.webp` ; conserver
+un seul format pour éviter d’intégrer plusieurs versions au build.
