@@ -29,6 +29,7 @@ export function Layout() {
           {token ? (
             <>
               <NavLink to="/me/bookings">Mes réservations</NavLink>
+              <NavLink to="/me/events">Mes événements</NavLink>
               <NavLink to="/profile">Profil</NavLink>
               <button type="button" onClick={logout}>
                 Se déconnecter
