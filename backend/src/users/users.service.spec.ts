@@ -6,6 +6,7 @@ import { Repository } from 'typeorm'
 import { RegisterDto } from './dto/register.dto'
 import { User, UserRole } from './user.entity'
 import { UsersService } from './users.service'
+import { MailService } from '../mail/mail.service'
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
@@ -31,9 +32,10 @@ describe('UsersService', () => {
       find: jest.fn(),
       createQueryBuilder: jest.fn(),
     }
+    const mail = { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: getRepositoryToken(User), useValue: repository }],
+      providers: [UsersService, { provide: getRepositoryToken(User), useValue: repository },{ provide: MailService, useValue: mail }],
     }).compile()
 
     service = module.get(UsersService)
@@ -67,9 +69,11 @@ describe('UsersService', () => {
       })
       expect(bcrypt.hash).toHaveBeenCalledWith('Password123!', 10)
       expect(repository.create).toHaveBeenCalledWith({
-        ...dto,
         email: 'alice@example.com',
+        pseudo: 'alice',
         passwordHash: 'hashed-password',
+        verificationTokenHash: expect.any(String) as string,
+        verificationTokenExpiresAt: expect.any(Date) as Date,
       })
       expect(repository.save).toHaveBeenCalledWith(savedUser)
       expect(result).toBe(savedUser)

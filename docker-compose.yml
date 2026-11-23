@@ -45,6 +45,13 @@ services:
       retries: 5
       start_period: 40s
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: eventhub-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   web:
     build:
       context: ./frontend
