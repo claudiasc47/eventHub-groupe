@@ -104,6 +104,7 @@ function OrganizerEvents() {
                   <p>Jusqu’au <time dateTime={event.endDate}>{dates.format(new Date(event.endDate))}</time></p>
                   <p>{event.location.name} · {event.category.name}</p>
                   <p><strong>{event.remainingSeats}</strong> places disponibles sur {event.capacity}</p>
+                  <Link className="button-link" to={`/events/${event.id}/edit`}>Modifier {event.name}</Link>
                 </li>
               ))}
             </ul>

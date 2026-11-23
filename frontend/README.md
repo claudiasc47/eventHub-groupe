@@ -85,7 +85,7 @@ responsable du contrôle des droits et du filtrage par propriétaire.
 
 L’écran propose un filtre par statut, le nombre de brouillons et de publications,
 les horaires et les places disponibles. Le lien de création mène à `/events/new`.
-La modification et la publication seront intégrées dans un écran distinct.
+Chaque carte propose un lien vers l’écran de modification `/events/{id}/edit`.
 
 Pour la démonstration locale, ajouter `VITE_MOCK_ORGANIZER=true` dans `frontend/.env`
 et redémarrer Vite ou `docker compose restart web`. Ce mode simule aussi
@@ -94,6 +94,28 @@ accepte le jeton de la session locale sans vérifier sa signature. Une mention
 explicite signale la simulation. Il ne modifie pas le rôle du compte en base.
 Pour tester les droits et les événements réels, désactiver ce mode et utiliser
 un compte organisateur fourni par le Back.
+
+## Modification et publication
+
+La route `/events/:id/edit` charge le profil, l’événement, les lieux et les
+catégories. Le formulaire est réservé à l’organisateur propriétaire. Les contrôles
+Front facilitent le parcours ; l’API doit appliquer les mêmes autorisations.
+
+La sauvegarde utilise `PATCH /events/{id}` avec les seuls champs modifiés, sans
+identifiant d’utilisateur ni rôle. Les dates sont affichées dans le fuseau du
+navigateur et converties en ISO 8601 UTC lors de l’envoi. Une description effacée
+est transmise à `null`. Le formulaire vérifie le nom, la capacité entière positive
+et l’ordre des dates. Un conflit `CAPACITY_BELOW_RESERVED` conserve les saisies.
+
+La publication d’un brouillon demande confirmation puis envoie les changements
+avec `status: "PUBLISHED"`. Aucun retour en brouillon n’est proposé. Un événement
+publié reste modifiable.
+
+Avec `VITE_MOCK_ORGANIZER=true`, les handlers simulent également le détail,
+les référentiels et le PATCH. Les changements sont conservés par session simulée
+pendant la navigation vers « Mes événements », puis réinitialisés au rechargement.
+La recette réelle des autorisations, de la persistance et des conflits de capacité
+reste à effectuer avec les mocks désactivés.
 
 ## Thèmes et visuel
 
