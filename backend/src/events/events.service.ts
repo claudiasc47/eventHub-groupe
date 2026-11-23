@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
@@ -102,7 +103,7 @@ export class EventsService {
     return this.toResponse(event)
   }
 
-  async create(input: CreateEventDto): Promise<EventResponse> {
+  async create(input: CreateEventDto, organizerId: string): Promise<EventResponse> {
     const startDate = new Date(input.startDate)
     const endDate = new Date(input.endDate)
     this.assertDateRange(startDate, endDate)
@@ -110,7 +111,7 @@ export class EventsService {
     const [location, category, organizer] = await Promise.all([
       this.locationsRepository.findOneBy({ id: input.locationId }),
       this.categoriesRepository.findOneBy({ id: input.categoryId }),
-      this.usersRepository.findOneBy({ id: input.organizerId }),
+      this.usersRepository.findOneBy({ id: organizerId }),
     ])
     if (!location) {
       throw new NotFoundException(`Location ${input.locationId} not found`)
@@ -119,10 +120,10 @@ export class EventsService {
       throw new NotFoundException(`Category ${input.categoryId} not found`)
     }
     if (!organizer) {
-      throw new NotFoundException(`Organizer ${input.organizerId} not found`)
+      throw new NotFoundException(`Organizer ${organizerId} not found`)
     }
     if (organizer.role !== UserRole.ORGANIZER) {
-      throw new BadRequestException('organizerId must refer to a user with the organizer role.')
+      throw new BadRequestException('Only organizers can create events.')
     }
 
     const event = this.eventsRepository.create({
@@ -140,8 +141,9 @@ export class EventsService {
     return this.toResponse(await this.eventsRepository.save(event))
   }
 
-  async update(id: string, input: UpdateEventDto): Promise<EventResponse> {
+  async update(id: string, input: UpdateEventDto, userId: string): Promise<EventResponse> {
     const event = await this.loadEvent(id)
+    this.assertOwner(event, userId)
     const startDate = input.startDate ? new Date(input.startDate) : event.startDate
     const endDate = input.endDate ? new Date(input.endDate) : event.endDate
     this.assertDateRange(startDate, endDate)
@@ -190,8 +192,8 @@ export class EventsService {
     return this.toResponse(await this.eventsRepository.save(event))
   }
 
-  async remove(id: string): Promise<void> {
-    await this.loadEvent(id)
+  async remove(id: string, userId: string): Promise<void> {
+    this.assertOwner(await this.loadEvent(id), userId)
     const bookingCount = await this.bookingsRepository.count({
       where: { event: { id } },
     })
@@ -221,6 +223,15 @@ export class EventsService {
       throw new NotFoundException(`Event ${id} not found`)
     }
     return event
+  }
+
+  private assertOwner(event: Event, userId: string): void {
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Only the event organizer can edit or delete it.',
+      })
+    }
   }
 
   private async getConfirmedQuantity(eventId: string): Promise<number> {

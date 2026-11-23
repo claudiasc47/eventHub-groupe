@@ -34,9 +34,6 @@ export class CreateEventDto {
   @IsUUID()
   categoryId!: string
 
-  @IsUUID()
-  organizerId!: string
-
   @IsInt()
   @Min(1)
   capacity!: number
