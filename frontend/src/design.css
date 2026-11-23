@@ -66,6 +66,14 @@ h1 { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.1; letter-spacing: -.04
 .booking-badge { border-radius: 999px; background: var(--soft); color: var(--accent); padding: .3rem .7rem; font-size: .85rem; font-weight: 600; }
 .booking-badge.cancelled { color: var(--muted); background: var(--bg); border: 1px solid var(--border); }
 .booking-created { font-size: .85rem; }
+.organizer-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.organizer-summary div { padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; }
+.organizer-summary dt { color: var(--muted); }
+.organizer-summary dd { margin: .25rem 0 0; font-size: 1.8rem; font-weight: 700; }
+.event-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
+.event-filters [aria-pressed='true'] { background: var(--accent); color: var(--on-accent); }
+.event-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.booking-card h2 { overflow-wrap: anywhere; }
 .success-notice, .demo-notice { background: var(--soft); padding: 1rem; border-radius: .75rem; }
 dialog { width: min(90vw, 34rem); border: 1px solid var(--border); border-radius: 1.25rem; padding: 2rem; background: var(--surface); color: var(--text); }
 dialog::backdrop { background: rgb(0 0 0 / 55%); }

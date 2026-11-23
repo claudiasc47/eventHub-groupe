@@ -76,6 +76,25 @@ docker compose restart web
 Pour la recette réelle, définir `VITE_MOCK_BOOKINGS=false`. Si les endpoints
 ne sont pas disponibles, l’écran affiche une erreur et un bouton « Réessayer ».
 
+## Mes événements organisateur
+
+La route `/me/events` affiche les brouillons et événements publiés du compte
+organisateur connecté via `GET /me/events`. Le profil est d’abord vérifié avec
+`GET /users/me` ; seuls les comptes `organizer` accèdent à la liste. Le Back reste
+responsable du contrôle des droits et du filtrage par propriétaire.
+
+L’écran propose un filtre par statut, le nombre de brouillons et de publications,
+les horaires et les places disponibles. Le lien de création mène à `/events/new`.
+La modification et la publication seront intégrées dans un écran distinct.
+
+Pour la démonstration locale, ajouter `VITE_MOCK_ORGANIZER=true` dans `frontend/.env`
+et redémarrer Vite ou `docker compose restart web`. Ce mode simule aussi
+`GET /users/me` avec un profil organisateur, y compris sur la page Profil ; il
+accepte le jeton de la session locale sans vérifier sa signature. Une mention
+explicite signale la simulation. Il ne modifie pas le rôle du compte en base.
+Pour tester les droits et les événements réels, désactiver ce mode et utiliser
+un compte organisateur fourni par le Back.
+
 ## Thèmes et visuel
 
 `src/design.css` contient les couleurs et styles partagés. Le bouton de navigation
