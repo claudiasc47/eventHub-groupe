@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Booking } from '../bookings/booking.entity'
@@ -195,17 +200,20 @@ describe('EventsService', () => {
     eventsRepository.create.mockReturnValue(newEvent)
     eventsRepository.save.mockResolvedValue(newEvent)
 
-    const result = await service.create({
-      name: '  Concert  ',
-      description: 'Live music',
-      startDate: '2027-05-15T19:00:00Z',
-      endDate: '2027-05-15T23:00:00Z',
-      locationId: 'location-id',
-      categoryId: 'category-id',
-      organizerId: 'organizer-id',
-      capacity: 100,
-    })
+    const result = await service.create(
+      {
+        name: '  Concert  ',
+        description: 'Live music',
+        startDate: '2027-05-15T19:00:00Z',
+        endDate: '2027-05-15T23:00:00Z',
+        locationId: 'location-id',
+        categoryId: 'category-id',
+        capacity: 100,
+      },
+      'organizer-id',
+    )
 
+    expect(usersRepository.findOneBy).toHaveBeenCalledWith({ id: 'organizer-id' })
     expect(eventsRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Concert',
@@ -225,15 +233,17 @@ describe('EventsService', () => {
 
   it('rejects an event whose end is before its start', async () => {
     await expect(
-      service.create({
-        name: 'Invalid',
-        startDate: '2027-05-15T23:00:00Z',
-        endDate: '2027-05-15T19:00:00Z',
-        locationId: 'location-id',
-        categoryId: 'category-id',
-        organizerId: 'organizer-id',
-        capacity: 10,
-      }),
+      service.create(
+        {
+          name: 'Invalid',
+          startDate: '2027-05-15T23:00:00Z',
+          endDate: '2027-05-15T19:00:00Z',
+          locationId: 'location-id',
+          categoryId: 'category-id',
+          capacity: 10,
+        },
+        'organizer-id',
+      ),
     ).rejects.toBeInstanceOf(BadRequestException)
     expect(locationsRepository.findOneBy).not.toHaveBeenCalled()
   })
@@ -244,19 +254,21 @@ describe('EventsService', () => {
     usersRepository.findOneBy.mockResolvedValue(organizer)
 
     await expect(
-      service.create({
-        name: 'Concert',
-        startDate: '2027-05-15T19:00:00Z',
-        endDate: '2027-05-15T23:00:00Z',
-        locationId: 'missing',
-        categoryId: 'category-id',
-        organizerId: 'organizer-id',
-        capacity: 10,
-      }),
+      service.create(
+        {
+          name: 'Concert',
+          startDate: '2027-05-15T19:00:00Z',
+          endDate: '2027-05-15T23:00:00Z',
+          locationId: 'missing',
+          categoryId: 'category-id',
+          capacity: 10,
+        },
+        'organizer-id',
+      ),
     ).rejects.toBeInstanceOf(NotFoundException)
   })
 
-  it('requires the selected user to have the organizer role', async () => {
+  it('requires the authenticated user to have the organizer role', async () => {
     locationsRepository.findOneBy.mockResolvedValue(location)
     categoriesRepository.findOneBy.mockResolvedValue(category)
     usersRepository.findOneBy.mockResolvedValue({
@@ -265,15 +277,17 @@ describe('EventsService', () => {
     })
 
     await expect(
-      service.create({
-        name: 'Concert',
-        startDate: '2027-05-15T19:00:00Z',
-        endDate: '2027-05-15T23:00:00Z',
-        locationId: 'location-id',
-        categoryId: 'category-id',
-        organizerId: 'user-id',
-        capacity: 10,
-      }),
+      service.create(
+        {
+          name: 'Concert',
+          startDate: '2027-05-15T19:00:00Z',
+          endDate: '2027-05-15T23:00:00Z',
+          locationId: 'location-id',
+          categoryId: 'category-id',
+          capacity: 10,
+        },
+        'user-id',
+      ),
     ).rejects.toBeInstanceOf(BadRequestException)
   })
 
@@ -286,10 +300,11 @@ describe('EventsService', () => {
       remainingSeats: 16,
     })
 
-    const result = await service.update('event-id', {
-      capacity: 20,
-      status: 'PUBLISHED',
-    })
+    const result = await service.update(
+      'event-id',
+      { capacity: 20, status: 'PUBLISHED' },
+      'organizer-id',
+    )
 
     expect(result).toMatchObject({
       status: 'PUBLISHED',
@@ -304,16 +319,18 @@ describe('EventsService', () => {
   it('does not reduce capacity below confirmed reservations', async () => {
     bookingQuery.getRawOne.mockResolvedValue({ quantity: '12' })
 
-    await expect(service.update('event-id', { capacity: 10 })).rejects.toBeInstanceOf(
-      ConflictException,
-    )
+    await expect(
+      service.update('event-id', { capacity: 10 }, 'organizer-id'),
+    ).rejects.toBeInstanceOf(ConflictException)
     expect(eventsRepository.save).not.toHaveBeenCalled()
   })
 
   it('rejects deleting an event with bookings', async () => {
     bookingsRepository.count.mockResolvedValue(1)
 
-    await expect(service.remove('event-id')).rejects.toBeInstanceOf(ConflictException)
+    await expect(service.remove('event-id', 'organizer-id')).rejects.toBeInstanceOf(
+      ConflictException,
+    )
     expect(eventsRepository.delete).not.toHaveBeenCalled()
   })
 
@@ -321,7 +338,22 @@ describe('EventsService', () => {
     bookingsRepository.count.mockResolvedValue(0)
     eventsRepository.delete.mockResolvedValue({ affected: 1 })
 
-    await expect(service.remove('event-id')).resolves.toBeUndefined()
+    await expect(service.remove('event-id', 'organizer-id')).resolves.toBeUndefined()
     expect(eventsRepository.delete).toHaveBeenCalledWith('event-id')
+  })
+  it('refuses to update an event owned by another organizer', async () => {
+    await expect(
+      service.update('event-id', { name: 'Hijacked' }, 'another-organizer'),
+    ).rejects.toBeInstanceOf(ForbiddenException)
+    expect(eventsRepository.save).not.toHaveBeenCalled()
+  })
+
+  it('refuses to delete an event owned by another organizer', async () => {
+    bookingsRepository.count.mockResolvedValue(0)
+
+    await expect(service.remove('event-id', 'another-organizer')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    )
+    expect(eventsRepository.delete).not.toHaveBeenCalled()
   })
 })

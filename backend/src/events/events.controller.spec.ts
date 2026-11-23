@@ -1,4 +1,19 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants'
 import { Test, TestingModule } from '@nestjs/testing'
+
+jest.mock('../common/guards/jwt-auth.guard', () => ({
+  JwtAuthGuard: class MockJwtAuthGuard {
+    canActivate() {
+      return true
+    }
+  },
+}))
+
+import { ROLES_KEY } from '../common/decorators/roles.decorator'
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
+import { RolesGuard } from '../common/guards/roles.guard'
+import { AuthUser } from '../common/types/authenticated-request'
+import { UserRole } from '../users/user.entity'
 import { CreateEventDto } from './dto/create-event.dto'
 import { FilterEventDto } from './dto/filter-event.dto'
 import { UpdateEventDto } from './dto/update-event.dto'
@@ -10,6 +25,8 @@ describe('EventsController', () => {
   let eventsService: jest.Mocked<
     Pick<EventsService, 'findAll' | 'create' | 'findOne' | 'update' | 'remove'>
   >
+
+  const organizer: AuthUser = { id: 'org-1', role: UserRole.ORGANIZER }
 
   const mockEventResponse = {
     id: '550e8400-e29b-41d4-a716-446655440000',
@@ -63,7 +80,7 @@ describe('EventsController', () => {
   })
 
   describe('create', () => {
-    it('delegates event creation to EventsService.create', async () => {
+    it('delegates event creation with the authenticated organizer id', async () => {
       const dto: CreateEventDto = {
         name: 'Conférence NestJS',
         description: 'Architecture modulaire et tests unitaires',
@@ -71,14 +88,13 @@ describe('EventsController', () => {
         endDate: '2026-12-15T20:00:00Z',
         locationId: 'loc-1',
         categoryId: 'cat-1',
-        organizerId: 'org-1',
         capacity: 50,
       }
       eventsService.create.mockResolvedValue(mockEventResponse)
 
-      const result = await controller.create(dto)
+      const result = await controller.create(dto, organizer)
 
-      expect(eventsService.create).toHaveBeenCalledWith(dto)
+      expect(eventsService.create).toHaveBeenCalledWith(dto, 'org-1')
       expect(result).toBe(mockEventResponse)
     })
   })
@@ -103,12 +119,9 @@ describe('EventsController', () => {
       }
       eventsService.update.mockResolvedValue(updatedEvent)
 
-      const result = await controller.update(mockEventResponse.id, dto)
+      const result = await controller.update(mockEventResponse.id, dto, organizer)
 
-      expect(eventsService.update).toHaveBeenCalledWith(
-        mockEventResponse.id,
-        dto,
-      )
+      expect(eventsService.update).toHaveBeenCalledWith(mockEventResponse.id, dto, 'org-1')
       expect(result).toEqual(updatedEvent)
     })
   })
@@ -117,10 +130,27 @@ describe('EventsController', () => {
     it('delegates deletion to EventsService.remove', async () => {
       eventsService.remove.mockResolvedValue(undefined)
 
-      await expect(
-        controller.remove(mockEventResponse.id),
-      ).resolves.toBeUndefined()
-      expect(eventsService.remove).toHaveBeenCalledWith(mockEventResponse.id)
+      await expect(controller.remove(mockEventResponse.id, organizer)).resolves.toBeUndefined()
+      expect(eventsService.remove).toHaveBeenCalledWith(mockEventResponse.id, 'org-1')
+    })
+  })
+  describe('protection of writing routes', () => {
+    // On lit les métadonnées posées par les décorateurs : la méthode n'est jamais appelée.
+    const handlerOf = (method: keyof EventsController): object =>
+      Object.getOwnPropertyDescriptor(EventsController.prototype, method)!.value as object
+
+    it.each(['create', 'update', 'remove'] as const)(
+      '%s requires a valid token and the organizer role',
+      (method) => {
+        const handler = handlerOf(method)
+
+        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([JwtAuthGuard, RolesGuard])
+        expect(Reflect.getMetadata(ROLES_KEY, handler)).toEqual([UserRole.ORGANIZER])
+      },
+    )
+
+    it.each(['findAll', 'findOne'] as const)('%s remains public', (method) => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf(method))).toBeUndefined()
     })
   })
 })
