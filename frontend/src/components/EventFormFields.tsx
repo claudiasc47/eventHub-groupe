@@ -54,13 +54,9 @@ export function EventFormFields({
       {field(
         'startDate',
         'Début',
-        <input type="datetime-local" step={1} required {...control('startDate')} />,
+        <input type="datetime-local" required {...control('startDate')} />,
       )}
-      {field(
-        'endDate',
-        'Fin',
-        <input type="datetime-local" step={1} required {...control('endDate')} />,
-      )}
+      {field('endDate', 'Fin', <input type="datetime-local" required {...control('endDate')} />)}
       {field(
         'locationId',
         'Lieu',
