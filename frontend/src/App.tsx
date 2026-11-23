@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
+import { RequireRole } from './auth/RequireRole'
 import { Layout } from './components/Layout'
+import { EventCreatePage } from './pages/EventCreatePage'
 import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -22,7 +24,11 @@ export default function App() {
           <Route path="events/:id/edit" element={<EditEventPage />} />
           <Route
             path="events/new"
-            element={<PlaceholderPage title="Créer un événement" ticket="#38" />}
+            element={
+              <RequireRole role="organizer">
+                <EventCreatePage />
+              </RequireRole>
+            }
           />
           <Route path="*" element={<PlaceholderPage title="Page introuvable" ticket="—" />} />
         </Route>

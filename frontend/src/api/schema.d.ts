@@ -823,8 +823,8 @@ export interface components {
         EventInput: {
             name: string;
             description?: string | null;
-            startDate: components["schemas"]["DateOnly"];
-            endDate: components["schemas"]["DateOnly"];
+            startDate: components["schemas"]["DateTime"];
+            endDate: components["schemas"]["DateTime"];
             locationId: components["schemas"]["Uuid"];
             categoryId: components["schemas"]["Uuid"];
             capacity: number;
@@ -833,8 +833,8 @@ export interface components {
         EventUpdate: {
             name?: string;
             description?: string | null;
-            startDate?: components["schemas"]["DateOnly"];
-            endDate?: components["schemas"]["DateOnly"];
+            startDate?: components["schemas"]["DateTime"];
+            endDate?: components["schemas"]["DateTime"];
             locationId?: components["schemas"]["Uuid"];
             categoryId?: components["schemas"]["Uuid"];
             capacity?: number;
@@ -849,8 +849,8 @@ export interface components {
             id: components["schemas"]["Uuid"];
             name: string;
             description: string | null;
-            startDate: components["schemas"]["DateOnly"];
-            endDate: components["schemas"]["DateOnly"];
+            startDate: components["schemas"]["DateTime"];
+            endDate: components["schemas"]["DateTime"];
             location: components["schemas"]["NamedRef"];
             category: components["schemas"]["NamedRef"];
             status: components["schemas"]["EventStatus"];
@@ -861,8 +861,8 @@ export interface components {
         EventSummary: {
             id: components["schemas"]["Uuid"];
             name: string;
-            startDate: components["schemas"]["DateOnly"];
-            endDate: components["schemas"]["DateOnly"];
+            startDate: components["schemas"]["DateTime"];
+            endDate: components["schemas"]["DateTime"];
             location: components["schemas"]["NamedRef"];
             status: components["schemas"]["EventStatus"];
         };
