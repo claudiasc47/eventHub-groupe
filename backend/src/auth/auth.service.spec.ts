@@ -32,6 +32,7 @@ describe('AuthService', () => {
     role: UserRole.PARTICIPANT,
     createdAt: new Date('2026-11-23T09:00:00Z'),
     updatedAt: new Date('2026-11-23T09:00:00Z'),
+    emailVerifiedAt: new Date('2026-11-23T09:00:01Z')
   }
 
   beforeEach(async () => {

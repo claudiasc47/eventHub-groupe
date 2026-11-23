@@ -69,9 +69,11 @@ describe('UsersService', () => {
       })
       expect(bcrypt.hash).toHaveBeenCalledWith('Password123!', 10)
       expect(repository.create).toHaveBeenCalledWith({
-        ...dto,
         email: 'alice@example.com',
+        pseudo: 'alice',
         passwordHash: 'hashed-password',
+        verificationTokenHash: expect.any(String),
+        verificationTokenExpiresAt: expect.any(Date),
       })
       expect(repository.save).toHaveBeenCalledWith(savedUser)
       expect(result).toBe(savedUser)
