@@ -1,33 +1,42 @@
-import { Link } from 'react-router'
+import type { ReactNode } from 'react'
 import type { Event } from '../api/types'
 
-const dates = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short' })
+const dates = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 
-function seatsLabel({ remainingSeats, capacity }: Event): string {
-  if (remainingSeats === 0) return 'Complet'
-  const places = remainingSeats > 1 ? 'places disponibles' : 'place disponible'
-  return `${remainingSeats} ${places} sur ${capacity}`
+type EventCardProps = {
+  event: Event
+  badge?: ReactNode
+  children: ReactNode
 }
 
-/** Carte d'un événement publié, avec un lien vers sa page de détail. */
-export function EventCard({ event }: { event: Event }) {
+/** Carte d'un événement, partagée par le catalogue et « Mes événements ». */
+export function EventCard({ event, badge, children }: EventCardProps) {
+  const { remainingSeats, capacity } = event
   return (
     <li className="booking-card event-card">
-      <span className="booking-badge">{event.category.name}</span>
+      {badge}
       <h2>{event.name}</h2>
       {event.description && <p className="event-description">{event.description}</p>}
       <p>
         <time dateTime={event.startDate}>{dates.format(new Date(event.startDate))}</time>
       </p>
-      <p>{event.location.name}</p>
-      <p className={event.remainingSeats === 0 ? 'event-full' : undefined}>{seatsLabel(event)}</p>
-      <Link
-        className="button-link"
-        to={`/events/${event.id}`}
-        aria-label={`Voir le détail : ${event.name}`}
-      >
-        Voir le détail
-      </Link>
+      <p>
+        Jusqu’au <time dateTime={event.endDate}>{dates.format(new Date(event.endDate))}</time>
+      </p>
+      <p>
+        {event.location.name} · {event.category.name}
+      </p>
+      <p>
+        {remainingSeats === 0 ? (
+          <strong>Complet</strong>
+        ) : (
+          <>
+            <strong>{remainingSeats}</strong>{' '}
+            {remainingSeats > 1 ? 'places disponibles' : 'place disponible'} sur {capacity}
+          </>
+        )}
+      </p>
+      <div className="event-card-actions">{children}</div>
     </li>
   )
 }

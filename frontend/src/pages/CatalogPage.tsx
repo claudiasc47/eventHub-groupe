@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { NamedRef } from '../api/types'
 import { useEventSearch, type EventSearchQuery } from '../api/useEventSearch'
 import { useReferenceData } from '../api/useReferenceData'
@@ -224,7 +224,15 @@ function Results({ state, page, onRetry, onPage }: ResultsProps) {
       </p>
       <ul className="booking-list" aria-label="Événements">
         {items.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard key={event.id} event={event}>
+            <Link
+              className="button-link"
+              to={`/events/${event.id}`}
+              aria-label={`Voir le détail : ${event.name}`}
+            >
+              Voir le détail
+            </Link>
+          </EventCard>
         ))}
       </ul>
       {pages > 1 && (

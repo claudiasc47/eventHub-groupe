@@ -97,9 +97,9 @@ dialog::backdrop { background: rgb(0 0 0 / 55%); }
 .catalog-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
 .event-card { display: flex; flex-direction: column; gap: .5rem; }
 .event-card h2, .event-card p { margin: 0; }
-.event-card .booking-badge, .event-card .button-link { align-self: flex-start; }
-.event-card .button-link { margin-top: auto; }
-.event-full { font-weight: 700; }
+.event-card .booking-badge { align-self: flex-start; }
+.event-card .event-card-actions { margin-top: auto; }
+.event-card-actions .button-link { margin-top: 0; }
 @media (max-width: 700px) {
   .bookings-hero:has(img) { grid-template-columns: 1fr; }
   .bookings-hero img { width: 180px; justify-self: start; }
