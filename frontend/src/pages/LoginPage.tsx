@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { LoginInput, LoginResponse } from '../api/types'
@@ -7,6 +7,8 @@ import { saveSession } from '../auth/session'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { state } = useLocation()
+  const bookingEventId: unknown = state?.bookingEventId
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -25,7 +27,11 @@ export function LoginPage() {
     try {
       const { data } = await api.post<LoginResponse>('/auth/login', payload)
       saveSession(data)
-      navigate('/profile', { replace: true })
+      const destination =
+        typeof bookingEventId === 'string' && bookingEventId
+          ? `/events/${encodeURIComponent(bookingEventId)}`
+          : '/profile'
+      navigate(destination, { replace: true })
     } catch (error) {
       const { status, message } = getApiError(error)
       setFormError(status === 401 ? 'Email ou mot de passe incorrect.' : message)

@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Event } from '../api/types'
 import { useSessionToken } from '../auth/session'
+import { EventBookingForm } from '../components/EventBookingForm'
 
 const dates = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 
@@ -21,7 +22,7 @@ export function EventDetailPage() {
     <section className="event-detail-page">
       <Link to="/">Retour au catalogue</Link>
       {id ? (
-        <EventDetail key={JSON.stringify([id, token])} id={id} />
+        <EventDetail key={JSON.stringify([id, token])} id={id} token={token} />
       ) : (
         <h1>Événement introuvable</h1>
       )}
@@ -29,7 +30,7 @@ export function EventDetailPage() {
   )
 }
 
-function EventDetail({ id }: { id: string }) {
+function EventDetail({ id, token }: { id: string; token: string | null }) {
   const [state, setState] = useState<EventState>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
 
@@ -129,6 +130,19 @@ function EventDetail({ id }: { id: string }) {
           </dd>
         </div>
       </dl>
+      {event.status === 'PUBLISHED' && (
+        <EventBookingForm
+          event={event}
+          token={token}
+          onSeatsChange={(remainingSeats) => {
+            setState((current) =>
+              current.kind === 'ready'
+                ? { kind: 'ready', event: { ...current.event, remainingSeats } }
+                : current,
+            )
+          }}
+        />
+      )}
     </article>
   )
 }
