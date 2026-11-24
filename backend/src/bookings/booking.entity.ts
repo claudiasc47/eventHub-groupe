@@ -9,6 +9,11 @@ import {
 import { Event } from '../events/event.entity';
 import { User } from '../users/user.entity';
 
+export enum BookingStatus {
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+}
+
 @Entity('bookings')
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
