@@ -1,6 +1,6 @@
 # ADR-002 : Modèle de données relationnel simplifié (5 tables)
 
-- **Statut :** Accepté (2026-11-20)
+- **Statut :** Accepté (2026-11-20) — Mis à jour (2026-11-24)
 - **Décideurs :** Équipe EventHub (Arnaud, Claudia, Chloé, Kenzo, Robin)
 
 ## Contexte
@@ -26,15 +26,18 @@ erDiagram
     users {
         uuid id PK
         varchar email UK "NOT NULL"
-        varchar password "NOT NULL (hash bcrypt)"
+        varchar password_hash "NOT NULL (hash bcrypt)"
         varchar pseudo "NOT NULL (3-30 car.)"
         varchar first_name "NULL"
         varchar last_name "NULL"
         varchar phone "NULL"
         date birth_date "NULL (YYYY-MM-DD)"
         varchar role "NOT NULL (participant|organizer|admin)"
-        timestamp created_at "NOT NULL, DEFAULT now()"
-        timestamp updated_at "NOT NULL, DEFAULT now()"
+        timestamptz email_verified_at "NULL (ISO 8601 UTC)"
+        varchar verification_token_hash "NULL"
+        timestamptz verification_token_expires_at "NULL (ISO 8601 UTC)"
+        timestamptz created_at "NOT NULL, DEFAULT now()"
+        timestamptz updated_at "NOT NULL, DEFAULT now()"
     }
 
     locations {
@@ -74,7 +77,7 @@ erDiagram
 ### Correspondance BDD (snake_case) et Contrat d'API (camelCase)
 
 - **remainingSeats :** Calculé dynamiquement par le Back-end (`events.capacity` moins la somme des `bookings.quantity` en statut `CONFIRMED`).
-- **Horodatages ISO 8601 :** `events.start_date`, `events.end_date`, `users.created_at`, `users.updated_at`, `events.created_at` et `bookings.created_at` sont en UTC (`date-time`).
+- **Horodatages ISO 8601 :** `events.start_date`, `events.end_date`, `users.email_verified_at`, `users.verification_token_expires_at`, `users.created_at`, `users.updated_at`, `events.created_at` et `bookings.created_at` sont en UTC (`date-time`).
 - **Date sans heure :** `users.birth_date` (`date`) est exposée au format `YYYY-MM-DD`.
 
 ## Conséquences

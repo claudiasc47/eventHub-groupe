@@ -92,6 +92,77 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Adresse email non vérifiée (`EMAIL_NOT_VERIFIED`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                code: EMAIL_NOT_VERIFIED
+                message: Veuillez confirmer votre adresse email avant de vous connecter.
+
+  /auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Confirmer une adresse email via le jeton reçu par mail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailInput"
+      responses:
+        "200":
+          description: Adresse email confirmée
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verified]
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+        "400":
+          description: Jeton invalide ou expiré (`INVALID_VERIFICATION_TOKEN`) ou erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                code: INVALID_VERIFICATION_TOKEN
+                message: Lien de vérification invalide ou expiré.
+
+  /auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Renvoyer un lien de vérification d'email
+      description: Réponse neutre en `200` pour ne pas divulguer l'existence d'un compte (anti-énumération, cooldown de 60 s).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationInput"
+      responses:
+        "200":
+          description: Demande traitée
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    example: Si un compte non vérifié existe pour cet email, un nouveau lien a été envoyé.
+        "400":
+          $ref: "#/components/responses/ValidationError"
 
   /users/me:
     get:
@@ -647,6 +718,24 @@ components:
         role:
           $ref: "#/components/schemas/Role"
 
+    VerifyEmailInput:
+      type: object
+      required: [token]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          minLength: 1
+
+    ResendVerificationInput:
+      type: object
+      required: [email]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+
     RoleInput:
       type: object
       required: [role]
@@ -819,6 +908,8 @@ components:
       enum:
         - VALIDATION_ERROR
         - UNAUTHENTICATED
+        - EMAIL_NOT_VERIFIED
+        - INVALID_VERIFICATION_TOKEN
         - FORBIDDEN
         - NOT_FOUND
         - EMAIL_ALREADY_USED

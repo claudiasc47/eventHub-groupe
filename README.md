@@ -27,7 +27,7 @@ Copier le fichier d'exemple pour initialiser les variables d'environnement local
     cp .env.example .env
 
 ### 2. Lancement de la stack complète
-Démarrer la base de données PostgreSQL 16, l'API NestJS et le Front-end React en une seule commande :
+Démarrer la base de données PostgreSQL 16, l'API NestJS, le serveur SMTP local Mailpit et le Front-end React en une seule commande :
 
     docker compose up --build
 
@@ -40,6 +40,7 @@ Démarrer la base de données PostgreSQL 16, l'API NestJS et le Front-end React 
 | **Front-end (Web)** | `http://localhost:5173` | Interface utilisateur React / Vite |
 | **API REST (Back)** | `http://localhost:3000/api` | Point d'entrée de l'API NestJS |
 | **Documentation OpenAPI** | `http://localhost:3000/api/docs` | Interface interactive Swagger UI |
+| **Mailpit (Webmail)** | `http://localhost:8025` | Interface de visualisation des e-mails de vérification en local (SMTP sur port `1025`) |
 | **PostgreSQL** | `localhost:5432` | Base de données relationnelle (`eventhub`) |
 
 ---
