@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { QueryFailedError } from 'typeorm'
 import { Booking } from '../bookings/booking.entity'
 import { Category } from '../categories/category.entity'
 import { Location } from '../locations/location.entity'
@@ -13,9 +14,15 @@ import { User, UserRole } from '../users/user.entity'
 import { Event } from './event.entity'
 import { EventsService } from './events.service'
 
+/**
+ * Tests unitaires du service EventsService.
+ * On simule (mock) les repositories TypeORM afin de tester la logique métier
+ * sans dépendre d'une vraie base de données PostgreSQL.
+ */
 describe('EventsService', () => {
   let service: EventsService
 
+  // Mocks des QueryBuilders utilisés pour les requêtes complexes (filtres, somme des places réservées)
   const eventQuery = {
     leftJoinAndSelect: jest.fn(),
     where: jest.fn(),
@@ -33,6 +40,8 @@ describe('EventsService', () => {
     andWhere: jest.fn(),
     getRawOne: jest.fn(),
   }
+
+  // Mocks des repositories TypeORM injectés dans EventsService
   const eventsRepository = {
     createQueryBuilder: jest.fn(),
     create: jest.fn(),
@@ -47,6 +56,7 @@ describe('EventsService', () => {
     createQueryBuilder: jest.fn(),
   }
 
+  // Jeu de données de référence réutilisé dans les différents scénarios de test
   const location = { id: 'location-id', name: 'Paris' }
   const category = { id: 'category-id', name: 'Music' }
   const organizer = { id: 'organizer-id', role: UserRole.ORGANIZER }
@@ -66,7 +76,10 @@ describe('EventsService', () => {
   }
 
   beforeEach(async () => {
+    // Réinitialise tous les mocks avant chaque test pour éviter les effets de bord
     jest.clearAllMocks()
+
+    // Permet le chaînage des méthodes du QueryBuilder (.where().andWhere().orderBy()...)
     for (const method of [
       eventQuery.leftJoinAndSelect,
       eventQuery.where,
@@ -81,10 +94,13 @@ describe('EventsService', () => {
     for (const method of [bookingQuery.select, bookingQuery.where, bookingQuery.andWhere]) {
       method.mockReturnValue(bookingQuery)
     }
+
     eventsRepository.createQueryBuilder.mockReturnValue(eventQuery)
     bookingsRepository.createQueryBuilder.mockReturnValue(bookingQuery)
+    // Par défaut, getOne renvoie une copie de l'événement brouillon
     eventQuery.getOne.mockResolvedValue({ ...event })
 
+    // Création du module de test NestJS avec injection des mocks
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
@@ -104,6 +120,8 @@ describe('EventsService', () => {
 
     service = module.get(EventsService)
   })
+
+  // --- Tests de récupération de liste (findAll) ---
 
   it('lists published events with pagination defaults and response shape', async () => {
     eventQuery.getManyAndCount.mockResolvedValue([[event], 1])
@@ -128,11 +146,35 @@ describe('EventsService', () => {
       pageSize: 20,
       total: 1,
     })
+    // Vérifie que seuls les événements publiés sont retournés par défaut, triés par date croissante
     expect(eventQuery.where).toHaveBeenCalledWith('event.status = :status', {
       status: 'PUBLISHED',
     })
+    expect(eventQuery.orderBy).toHaveBeenCalledWith('event.startDate', 'ASC')
+    expect(eventQuery.andWhere).not.toHaveBeenCalled()
     expect(eventQuery.skip).toHaveBeenCalledWith(0)
     expect(eventQuery.take).toHaveBeenCalledWith(20)
+  })
+
+  it('applies inclusive date-time bounds when ISO timestamps are provided', async () => {
+    eventQuery.getManyAndCount.mockResolvedValue([[], 0])
+
+    await service.findAll({
+      dateFrom: '2027-05-15T10:00:00.000Z',
+      dateTo: '2027-05-15T22:00:00.000Z',
+      page: 1,
+      pageSize: 20,
+      sort: 'startDate:asc',
+    })
+
+    // Avec un horodatage ISO complet, la borne dateTo est inclusive (<=)
+    expect(eventQuery.andWhere).toHaveBeenCalledWith('event.startDate >= :dateFrom', {
+      dateFrom: '2027-05-15T10:00:00.000Z',
+    })
+    expect(eventQuery.andWhere).toHaveBeenCalledWith('event.startDate <= :dateTo', {
+      dateTo: '2027-05-15T22:00:00.000Z',
+    })
+    expect(eventQuery.orderBy).toHaveBeenCalledWith('event.startDate', 'ASC')
   })
 
   it('applies search, ID, inclusive date and descending sort filters', async () => {
@@ -149,6 +191,7 @@ describe('EventsService', () => {
       sort: 'startDate:desc',
     })
 
+    // Vérifie l'application de tous les filtres combinés et le calcul de l'offset (page 2 -> skip 10)
     expect(eventQuery.andWhere).toHaveBeenCalledWith(expect.stringContaining('ILIKE'), {
       search: '%music%',
     })
@@ -168,6 +211,8 @@ describe('EventsService', () => {
     expect(eventQuery.addOrderBy).toHaveBeenCalledWith('event.id', 'ASC')
     expect(eventQuery.skip).toHaveBeenCalledWith(10)
   })
+
+  // --- Tests de récupération unitaire (findOne) ---
 
   it('returns a published event by id to an anonymous visitor', async () => {
     eventQuery.getOne.mockResolvedValue({ ...event, status: 'PUBLISHED' })
@@ -190,6 +235,7 @@ describe('EventsService', () => {
   })
 
   it.each([undefined, 'another-organizer'])('hides the draft from viewer %s', async (viewerId) => {
+    // Un brouillon ne doit pas fuiter : on renvoie une 404 aux visiteurs anonymes ou autres organisateurs
     await expect(service.findOne(event.id, viewerId)).rejects.toMatchObject({
       status: 404,
       message: `Event ${event.id} not found`,
@@ -201,6 +247,8 @@ describe('EventsService', () => {
 
     await expect(service.findOne('missing')).rejects.toBeInstanceOf(NotFoundException)
   })
+
+  // --- Tests de création (create) ---
 
   it('creates a draft event with all seats available', async () => {
     locationsRepository.findOneBy.mockResolvedValue(location)
@@ -228,6 +276,7 @@ describe('EventsService', () => {
       'organizer-id',
     )
 
+    // Vérifie le nettoyage des espaces (trim) sur le nom et l'initialisation des places restantes
     expect(usersRepository.findOneBy).toHaveBeenCalledWith({ id: 'organizer-id' })
     expect(eventsRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -283,6 +332,30 @@ describe('EventsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException)
   })
 
+  it.each([
+    ['category', location, null, organizer],
+    ['organizer', location, category, null],
+  ])('throws NotFoundException when %s does not exist on create', async (_, loc, cat, org) => {
+    // Vérifie qu'une catégorie ou un organisateur inexistant déclenche bien une 404
+    locationsRepository.findOneBy.mockResolvedValue(loc)
+    categoriesRepository.findOneBy.mockResolvedValue(cat)
+    usersRepository.findOneBy.mockResolvedValue(org)
+
+    await expect(
+      service.create(
+        {
+          name: 'Concert',
+          startDate: '2027-05-15T19:00:00Z',
+          endDate: '2027-05-15T23:00:00Z',
+          locationId: 'location-id',
+          categoryId: 'category-id',
+          capacity: 10,
+        },
+        'organizer-id',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException)
+  })
+
   it('requires the authenticated user to have the organizer role', async () => {
     locationsRepository.findOneBy.mockResolvedValue(location)
     categoriesRepository.findOneBy.mockResolvedValue(category)
@@ -306,7 +379,10 @@ describe('EventsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException)
   })
 
+  // --- Tests de mise à jour (update) ---
+
   it('publishes an event and recalculates remaining seats from confirmed bookings', async () => {
+    // 4 places sont déjà confirmées -> sur une capacité de 20, il doit rester 16 places
     bookingQuery.getRawOne.mockResolvedValue({ quantity: '4' })
     eventsRepository.save.mockResolvedValue({
       ...event,
@@ -332,6 +408,7 @@ describe('EventsService', () => {
   })
 
   it('does not reduce capacity below confirmed reservations', async () => {
+    // Impossible de baisser la capacité à 10 si 12 places sont déjà réservées
     bookingQuery.getRawOne.mockResolvedValue({ quantity: '12' })
 
     await expect(
@@ -339,6 +416,54 @@ describe('EventsService', () => {
     ).rejects.toBeInstanceOf(ConflictException)
     expect(eventsRepository.save).not.toHaveBeenCalled()
   })
+
+  it('refuses to update an event owned by another organizer', async () => {
+    await expect(
+      service.update('event-id', { name: 'Hijacked' }, 'another-organizer'),
+    ).rejects.toBeInstanceOf(ForbiddenException)
+    expect(eventsRepository.save).not.toHaveBeenCalled()
+  })
+
+  it('updates event details, location and category', async () => {
+    const newLocation = { id: 'loc-2', name: 'Lyon' }
+    const newCategory = { id: 'cat-2', name: 'Conference' }
+    locationsRepository.findOneBy.mockResolvedValue(newLocation)
+    categoriesRepository.findOneBy.mockResolvedValue(newCategory)
+    // Retourne l'objet sauvegardé tel quel pour vérifier les champs mis à jour
+    eventsRepository.save.mockImplementation((e: Record<string, unknown>) => Promise.resolve(e))
+
+    const result = await service.update(
+      'event-id',
+      {
+        name: '  Tech Conf  ',
+        description: 'Updated description',
+        locationId: 'loc-2',
+        categoryId: 'cat-2',
+      },
+      'organizer-id',
+    )
+
+    expect(result).toMatchObject({
+      name: 'Tech Conf',
+      description: 'Updated description',
+      location: newLocation,
+      category: newCategory,
+    })
+  })
+
+  it('throws NotFoundException when updated location or category is missing', async () => {
+    locationsRepository.findOneBy.mockResolvedValue(null)
+    await expect(
+      service.update('event-id', { locationId: 'missing-loc' }, 'organizer-id'),
+    ).rejects.toBeInstanceOf(NotFoundException)
+
+    categoriesRepository.findOneBy.mockResolvedValue(null)
+    await expect(
+      service.update('event-id', { categoryId: 'missing-cat' }, 'organizer-id'),
+    ).rejects.toBeInstanceOf(NotFoundException)
+  })
+
+  // --- Tests de suppression (remove) ---
 
   it('rejects deleting an event with bookings', async () => {
     bookingsRepository.count.mockResolvedValue(1)
@@ -356,12 +481,6 @@ describe('EventsService', () => {
     await expect(service.remove('event-id', 'organizer-id')).resolves.toBeUndefined()
     expect(eventsRepository.delete).toHaveBeenCalledWith('event-id')
   })
-  it('refuses to update an event owned by another organizer', async () => {
-    await expect(
-      service.update('event-id', { name: 'Hijacked' }, 'another-organizer'),
-    ).rejects.toBeInstanceOf(ForbiddenException)
-    expect(eventsRepository.save).not.toHaveBeenCalled()
-  })
 
   it('refuses to delete an event owned by another organizer', async () => {
     bookingsRepository.count.mockResolvedValue(0)
@@ -370,5 +489,21 @@ describe('EventsService', () => {
       ForbiddenException,
     )
     expect(eventsRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('translates PostgreSQL foreign key violation (23503) into ConflictException on remove', async () => {
+    // Simule une contrainte d'intégrité PostgreSQL (code 23503) si une réservation apparaît en parallèle
+    bookingsRepository.count.mockResolvedValue(0)
+    eventsRepository.delete.mockRejectedValue(
+      new QueryFailedError(
+        'DELETE FROM events',
+        [],
+        Object.assign(new Error('fk'), { code: '23503' }),
+      ),
+    )
+
+    await expect(service.remove('event-id', 'organizer-id')).rejects.toBeInstanceOf(
+      ConflictException,
+    )
   })
 })
