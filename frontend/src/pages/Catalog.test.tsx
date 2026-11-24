@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw/http'
 import { setupServer } from 'msw/node'
@@ -46,7 +46,6 @@ const workshop = makeEvent('Atelier céramique', '2030-04-02T14:00:00.000Z', {
 const past = makeEvent('Conférence passée', '2020-01-15T18:00:00.000Z')
 const draft = makeEvent('Brouillon caché', '2030-05-01T18:00:00.000Z', { status: 'DRAFT' })
 
-/** Paramètres de chaque appel à GET /events, dans l'ordre. */
 let requests: URLSearchParams[] = []
 
 function useCatalog(events: Event[]) {
@@ -79,11 +78,20 @@ function openCatalog(path = '/') {
   return { user: userEvent.setup(), ...render(<App />) }
 }
 
+async function settled() {
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toHaveTextContent(/trouvés?$/)
+  })
+}
+
 async function results() {
-  return within(await screen.findByRole('list', { name: 'Événements' })).getAllByRole('heading', {
+  await settled()
+  return within(screen.getByRole('list', { name: 'Événements' })).getAllByRole('heading', {
     level: 2,
   })
 }
+
+const titles = async () => (await results()).map((heading) => heading.textContent)
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 beforeEach(() => {
@@ -165,9 +173,12 @@ describe('Catalogue — filtres', () => {
     await user.selectOptions(screen.getByLabelText('Lieu'), lyon.name)
     fireEvent.change(screen.getByLabelText('À partir du'), { target: { value: '2030-03-01' } })
     fireEvent.change(screen.getByLabelText('Jusqu’au'), { target: { value: '2030-03-31' } })
-    await user.click(screen.getByRole('button', { name: 'Rechercher' }))
 
-    expect((await results()).map((heading) => heading.textContent)).toEqual(['Soirée jazz'])
+    await waitFor(() => {
+      expect(requests.at(-1)!.get('dateTo')).toBe('2030-03-31')
+      expect(requests.at(-1)!.get('q')).toBe('jazz')
+    })
+    expect(await titles()).toEqual(['Soirée jazz'])
     const last = requests.at(-1)!
     expect(toObject(last)).toEqual({
       q: 'jazz',
@@ -192,11 +203,10 @@ describe('Catalogue — filtres', () => {
   })
 
   it('inclut les événements passés quand la date de début est vidée', async () => {
-    const { user } = openCatalog()
+    openCatalog()
     await results()
 
     fireEvent.change(screen.getByLabelText('À partir du'), { target: { value: '' } })
-    await user.click(screen.getByRole('button', { name: 'Rechercher' }))
 
     expect(await screen.findByRole('heading', { name: 'Conférence passée' })).toBeInTheDocument()
     expect(requests.at(-1)!.has('dateFrom')).toBe(false)
@@ -207,14 +217,9 @@ describe('Catalogue — filtres', () => {
     await results()
 
     await user.selectOptions(screen.getByLabelText('Ordre'), 'Les plus lointains')
-    await user.click(screen.getByRole('button', { name: 'Rechercher' }))
 
-    await screen.findByText('2 événements trouvés')
     expect(requests.at(-1)!.get('sort')).toBe('startDate:desc')
-    expect((await results()).map((heading) => heading.textContent)).toEqual([
-      'Atelier céramique',
-      'Soirée jazz',
-    ])
+    expect(await titles()).toEqual(['Atelier céramique', 'Soirée jazz'])
   })
 })
 
@@ -239,5 +244,95 @@ describe('Catalogue — pagination', () => {
     expect((await results()).map((heading) => heading.textContent)).toEqual(['Événement 13'])
     expect(requests.at(-1)!.get('page')).toBe('2')
     expect(screen.getByText('Page 2 sur 2')).toBeInTheDocument()
+  })
+})
+
+describe('Catalogue — aucun résultat et mise à jour (#44)', () => {
+  it('met à jour les résultats dès qu’un filtre change, sans bouton à cliquer', async () => {
+    const { user } = openCatalog()
+    expect(await titles()).toEqual(['Soirée jazz', 'Atelier céramique'])
+
+    await user.selectOptions(await screen.findByLabelText('Catégorie'), workshops.name)
+
+    expect(await titles()).toEqual(['Atelier céramique'])
+    expect(requests.at(-1)!.get('categoryId')).toBe(workshops.id)
+    expect(screen.queryByRole('button', { name: 'Rechercher' })).not.toBeInTheDocument()
+  })
+
+  it('attend la fin de la saisie avant de lancer la recherche texte', async () => {
+    const { user } = openCatalog()
+    await results()
+
+    await user.type(screen.getByLabelText('Recherche'), 'jazz')
+
+    await waitFor(() => expect(requests.at(-1)!.get('q')).toBe('jazz'))
+    expect(await titles()).toEqual(['Soirée jazz'])
+    const searched = requests.filter((params) => params.has('q')).map((params) => params.get('q'))
+    expect(searched).toEqual(['jazz'])
+  })
+
+  it('garde un espace tapé avant une pause dans la recherche', async () => {
+    const { user } = openCatalog()
+    await results()
+    const search = screen.getByLabelText('Recherche')
+
+    await user.type(search, 'soirée ')
+    await waitFor(() => expect(requests.at(-1)!.get('q')).toBe('soirée'))
+    await user.type(search, 'jazz')
+
+    expect(search).toHaveValue('soirée jazz')
+    expect(await titles()).toEqual(['Soirée jazz'])
+  })
+
+  it('signale l’absence de résultat et permet de réinitialiser les filtres', async () => {
+    const { user } = openCatalog('/?q=introuvable')
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Aucun événement ne correspond à votre recherche',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('0 événement trouvé')
+    expect(screen.queryByRole('list', { name: 'Événements' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }))
+
+    expect(await titles()).toEqual(['Soirée jazz', 'Atelier céramique'])
+    expect(screen.getByLabelText('Recherche')).toHaveValue('')
+    expect(window.location.search).toBe('')
+  })
+
+  it('distingue un catalogue vide d’une recherche sans résultat', async () => {
+    useCatalog([past, draft])
+    openCatalog()
+
+    expect(
+      await screen.findByRole('heading', { name: 'Aucun événement à venir pour le moment' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Réinitialiser les filtres' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('propose de revenir à la première page quand la page demandée n’existe pas', async () => {
+    const { user } = openCatalog('/?page=5')
+
+    await user.click(await screen.findByRole('button', { name: 'Revenir à la première page' }))
+
+    expect(await titles()).toEqual(['Soirée jazz', 'Atelier céramique'])
+    expect(requests.at(-1)!.get('page')).toBe('1')
+  })
+
+  it('reprend les filtres précédents avec le bouton « Précédent » du navigateur', async () => {
+    const { user } = openCatalog()
+    await results()
+
+    await user.selectOptions(await screen.findByLabelText('Lieu'), lyon.name)
+    expect(await titles()).toEqual(['Soirée jazz'])
+
+    window.history.back()
+
+    await waitFor(() => expect(screen.getByLabelText('Lieu')).toHaveValue(''))
+    expect(await titles()).toEqual(['Soirée jazz', 'Atelier céramique'])
   })
 })

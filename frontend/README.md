@@ -64,6 +64,11 @@ la restaure. Sans date choisie, le catalogue part du jour courant ; vider le cha
 « À partir du » affiche aussi les événements passés. Chaque carte mène au détail
 `/events/{id}`.
 
+Les résultats se mettent à jour à chaque filtre, sans bouton : immédiatement pour les
+listes et les dates, 300 ms après la dernière frappe pour la recherche texte. Pendant la
+mise à jour, les résultats précédents restent affichés. Une recherche sans résultat propose
+de réinitialiser les filtres ; un catalogue vide l’indique sans proposer de filtre.
+
 Pour la démonstration locale, `VITE_MOCK_EVENTS=true` simule aussi `GET /events` et le
 détail public `GET /events/{id}` avec quelques événements publiés, datés à partir du
 jour courant.

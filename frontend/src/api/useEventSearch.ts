@@ -3,7 +3,6 @@ import { api } from './client'
 import { getApiError } from './errors'
 import type { EventPage } from './types'
 
-/** Paramètres de `GET /events` (contrat v0.1). Les valeurs absentes ne sont pas envoyées. */
 export type EventSearchQuery = {
   q?: string
   categoryId?: string
@@ -19,12 +18,10 @@ type Outcome = { status: 'error'; message: string } | { status: 'ready'; result:
 
 export type EventSearchState = { status: 'loading' } | Outcome
 
-/**
- * Charge une page du catalogue à chaque changement de `query`. La requête précédente est
- * annulée : la réponse affichée correspond toujours aux derniers filtres.
- */
+// Garde le dernier résultat affiché pendant la mise à jour (isUpdating).
 export function useEventSearch(query: EventSearchQuery): {
   state: EventSearchState
+  isUpdating: boolean
   retry: () => void
 } {
   const [attempt, setAttempt] = useState(0)
@@ -48,7 +45,9 @@ export function useEventSearch(query: EventSearchQuery): {
     return () => controller.abort()
   }, [params, key])
 
-  // Tant que la réponse aux paramètres courants n'est pas arrivée, l'état est « chargement ».
-  const state: EventSearchState = loaded?.key === key ? loaded.outcome : { status: 'loading' }
-  return { state, retry: () => setAttempt((value) => value + 1) }
+  return {
+    state: loaded ? loaded.outcome : { status: 'loading' },
+    isUpdating: loaded !== null && loaded.key !== key,
+    retry: () => setAttempt((value) => value + 1),
+  }
 }
