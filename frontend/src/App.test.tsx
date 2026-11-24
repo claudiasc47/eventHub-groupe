@@ -1,11 +1,20 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { setupServer } from 'msw/node'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { createCatalogHandlers } from './mocks/catalog'
+import { createEventHandlers } from './mocks/events'
+
+const base = import.meta.env.VITE_API_URL!
+const server = setupServer(...createCatalogHandlers(base), ...createEventHandlers(base))
 
 function renderAt(path: string) {
   window.history.pushState({}, '', path)
   render(<App />)
 }
+
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
+afterAll(() => server.close())
 
 describe('App', () => {
   beforeEach(() => localStorage.clear())

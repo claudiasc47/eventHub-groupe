@@ -92,6 +92,17 @@ h1 { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.1; letter-spacing: -.04
 dialog { width: min(90vw, 34rem); border: 1px solid var(--border); border-radius: 1.25rem; padding: 2rem; background: var(--surface); color: var(--text); }
 dialog::backdrop { background: rgb(0 0 0 / 55%); }
 .dialog-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.catalog-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 1rem; align-items: end; margin: 1.5rem 0; padding: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; }
+.catalog-filters label { display: block; margin-bottom: .25rem; font-weight: 600; }
+.catalog-filters input, .catalog-filters select { width: 100%; height: 2.9rem; box-sizing: border-box; padding: 0 .7rem; font: inherit; border: 1px solid var(--border); border-radius: .65rem; color: var(--text); background: var(--bg); }
+.catalog-search { grid-column: 1 / -1; }
+.catalog-filters-note { grid-column: 1 / -1; margin: 0; }
+.catalog-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+.event-card { display: flex; flex-direction: column; gap: .5rem; }
+.event-card h2, .event-card p { margin: 0; }
+.event-card .booking-badge { align-self: flex-start; }
+.event-card .event-card-actions { margin-top: auto; }
+.event-card-actions .button-link { margin-top: 0; }
 @media (max-width: 700px) {
   .bookings-hero:has(img) { grid-template-columns: 1fr; }
   .bookings-hero img { width: 180px; justify-self: start; }

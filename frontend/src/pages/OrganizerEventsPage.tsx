@@ -4,9 +4,9 @@ import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Event, User } from '../api/types'
 import { clearSession, useSessionToken } from '../auth/session'
+import { EventCard } from '../components/EventCard'
 
 type Filter = 'ALL' | 'DRAFT' | 'PUBLISHED'
-const dates = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 
 export function OrganizerEventsPage() {
   const token = useSessionToken()
@@ -96,19 +96,11 @@ function OrganizerEvents() {
           {visible.length === 0 ? <div className="state-panel"><h2>Aucun événement pour ce statut</h2><p>Choisissez un autre filtre pour retrouver vos événements.</p></div> : (
             <ul className="booking-list" aria-label="Vos événements">
               {visible.map((event) => (
-                <li key={event.id} className="booking-card">
-                  <span className={`booking-badge ${event.status === 'DRAFT' ? 'cancelled' : ''}`}>{event.status === 'DRAFT' ? 'Brouillon' : 'Publié'}</span>
-                  <h2>{event.name}</h2>
-                  {event.description && <p className="event-description">{event.description}</p>}
-                  <p><time dateTime={event.startDate}>{dates.format(new Date(event.startDate))}</time></p>
-                  <p>Jusqu’au <time dateTime={event.endDate}>{dates.format(new Date(event.endDate))}</time></p>
-                  <p>{event.location.name} · {event.category.name}</p>
-                  <p><strong>{event.remainingSeats}</strong> places disponibles sur {event.capacity}</p>
-                  <div className="event-card-actions">
-                    <Link to={`/events/${event.id}`}>Voir {event.name}</Link>
-                    <Link className="button-link" to={`/events/${event.id}/edit`}>Modifier {event.name}</Link>
-                  </div>
-                </li>
+                <EventCard key={event.id} event={event}
+                  badge={<span className={`booking-badge ${event.status === 'DRAFT' ? 'cancelled' : ''}`}>{event.status === 'DRAFT' ? 'Brouillon' : 'Publié'}</span>}>
+                  <Link to={`/events/${event.id}`}>Voir {event.name}</Link>
+                  <Link className="button-link" to={`/events/${event.id}/edit`}>Modifier {event.name}</Link>
+                </EventCard>
               ))}
             </ul>
           )}

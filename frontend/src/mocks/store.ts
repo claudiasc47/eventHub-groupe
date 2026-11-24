@@ -1,10 +1,6 @@
 import type { Event } from '../api/types'
 
-/**
- * Événements simulés, partagés par les mocks qui les lisent ou les modifient : un événement
- * créé par `POST /events` est ensuite visible dans « Mes événements » et modifiable.
- * Chaque jeton a sa propre copie, pour que deux sessions simulées ne se mélangent pas.
- */
+// Liste partagée par les mocks, une copie par jeton.
 export type EventStore = {
   eventsFor: (request: Request) => Event[]
 }

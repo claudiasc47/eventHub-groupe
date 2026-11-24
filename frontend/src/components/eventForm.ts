@@ -1,7 +1,5 @@
 import type { Event, EventInput } from '../api/types'
 
-// Logique partagée par les formulaires de création et de modification d'un événement.
-
 export const EVENT_FIELDS = [
   'name',
   'description',
@@ -14,10 +12,8 @@ export const EVENT_FIELDS = [
 
 export type EventField = (typeof EVENT_FIELDS)[number]
 
-/** Valeurs saisies, telles que les champs du formulaire les donnent (texte). */
 export type EventFormValues = Record<EventField, string>
 
-/** Messages d'erreur par champ. L'API peut aussi en renvoyer pour d'autres champs. */
 export type EventFormErrors = Partial<Record<string, string>>
 
 export const EMPTY_EVENT_FORM: EventFormValues = {
@@ -34,7 +30,6 @@ export function isEventField(name: string): name is EventField {
   return (EVENT_FIELDS as readonly string[]).includes(name)
 }
 
-/** Préremplit le formulaire avec un événement existant, dates affichées dans le fuseau local. */
 export function toEventFormValues(event: Event): EventFormValues {
   return {
     name: event.name,
@@ -69,7 +64,6 @@ export function validateEventForm(values: EventFormValues): EventFormErrors {
   return errors
 }
 
-/** Corps attendu par le contrat : textes nettoyés, dates en ISO 8601 UTC, capacité numérique. */
 export function toEventInput(values: EventFormValues): EventInput {
   const description = values.description.trim()
   return {
@@ -87,7 +81,7 @@ function isValidDate(date: Date): boolean {
   return Number.isFinite(date.getTime())
 }
 
-// `datetime-local` donne une heure locale sans fuseau ; le contrat attend de l'ISO 8601 en UTC.
+// datetime-local est en heure locale ; le contrat attend de l'UTC.
 function toUtcIso(local: string): string {
   const date = new Date(local)
   return isValidDate(date) ? date.toISOString() : local
