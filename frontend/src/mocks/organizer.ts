@@ -48,9 +48,8 @@ export function createOrganizerHandlers(baseURL: string, initial: Event[] = demo
     http.get(`${base}/locations`, () => HttpResponse.json(locations)),
     http.get(`${base}/categories`, () => HttpResponse.json(categories)),
     http.get(`${base}/events/:id`, ({ request, params }) => {
-      if (!authorized(request)) return unauthenticated()
       const event = eventsFor(request).find((item) => item.id === params.id)
-      if (!event || (event.status === 'DRAFT' && event.organizerId !== user.id)) return missing()
+      if (!event || (event.status === 'DRAFT' && (!authorized(request) || event.organizerId !== user.id))) return missing()
       return HttpResponse.json(event)
     }),
     http.patch(`${base}/events/:id`, async ({ request, params }) => {

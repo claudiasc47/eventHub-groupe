@@ -169,7 +169,8 @@ describe('EventsService', () => {
     expect(eventQuery.skip).toHaveBeenCalledWith(10)
   })
 
-  it('returns an event by id', async () => {
+  it('returns a published event by id to an anonymous visitor', async () => {
+    eventQuery.getOne.mockResolvedValue({ ...event, status: 'PUBLISHED' })
     await expect(service.findOne('event-id')).resolves.toMatchObject({
       id: 'event-id',
       location: { id: 'location-id', name: 'Paris' },
@@ -178,6 +179,20 @@ describe('EventsService', () => {
     })
     expect(eventQuery.where).toHaveBeenCalledWith('event.id = :id', {
       id: 'event-id',
+    })
+  })
+
+  it('returns a draft to its owner', async () => {
+    await expect(service.findOne(event.id, organizer.id)).resolves.toMatchObject({
+      id: event.id,
+      status: 'DRAFT',
+    })
+  })
+
+  it.each([undefined, 'another-organizer'])('hides the draft from viewer %s', async (viewerId) => {
+    await expect(service.findOne(event.id, viewerId)).rejects.toMatchObject({
+      status: 404,
+      message: `Event ${event.id} not found`,
     })
   })
 

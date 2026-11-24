@@ -98,8 +98,11 @@ export class EventsService {
     }
   }
 
-  async findOne(id: string): Promise<EventResponse> {
+  async findOne(id: string, viewerId?: string): Promise<EventResponse> {
     const event = await this.loadEvent(id)
+    if (event.status === 'DRAFT' && event.organizer.id !== viewerId) {
+      throw new NotFoundException(`Event ${id} not found`)
+    }
     return this.toResponse(event)
   }
 

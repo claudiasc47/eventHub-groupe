@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -16,6 +17,7 @@ import { ApiBearerAuth } from '@nestjs/swagger'
 import { CurrentUser } from '../common/decorators/current-user.decorator'
 import { Roles } from '../common/decorators/roles.decorator'
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard'
 import { RolesGuard } from '../common/guards/roles.guard'
 import type { AuthUser } from '../common/types/authenticated-request'
 import { UserRole } from '../users/user.entity'
@@ -42,8 +44,10 @@ export class EventsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.eventsService.findOne(id)
+  @UseGuards(OptionalJwtAuthGuard)
+  @Header('Cache-Control', 'private, no-store')
+  findOne(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user?: AuthUser) {
+    return this.eventsService.findOne(id, user?.id)
   }
 
   @Patch(':id')
