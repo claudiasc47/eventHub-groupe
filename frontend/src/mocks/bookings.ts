@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw/http'
-import type { Booking } from '../api/types'
+import type { ApiError, Booking, BookingInput } from '../api/types'
+import { demoOrganizerEvents } from './organizer'
+import { createEventStore, type EventStore } from './store'
 
 export const demoBookings: Booking[] = [
   {
@@ -9,7 +11,10 @@ export const demoBookings: Booking[] = [
       name: 'Rencontres créatives',
       startDate: '2026-12-15T18:00:00Z',
       endDate: '2026-12-15T21:00:00Z',
-      location: { id: 'c1be1089-12ef-46d3-89ab-916db978cbb5', name: 'La Maison des événements, Paris' },
+      location: {
+        id: 'c1be1089-12ef-46d3-89ab-916db978cbb5',
+        name: 'La Maison des événements, Paris',
+      },
       status: 'PUBLISHED',
     },
     quantity: 2,
@@ -32,7 +37,11 @@ export const demoBookings: Booking[] = [
   },
 ]
 
-export function createBookingHandlers(baseURL: string, initial: Booking[] = demoBookings) {
+export function createBookingHandlers(
+  baseURL: string,
+  initial: Booking[] = demoBookings,
+  store: EventStore = createEventStore(demoOrganizerEvents),
+) {
   const base = baseURL.replace(/\/$/, '')
   const accounts = new Map<string, Booking[]>()
   function userBookings(request: Request) {
@@ -41,17 +50,64 @@ export function createBookingHandlers(baseURL: string, initial: Booking[] = demo
     if (!accounts.has(token)) accounts.set(token, structuredClone(initial))
     return accounts.get(token)!
   }
+  function error(statusCode: number, code: ApiError['code'], message: string) {
+    return HttpResponse.json<ApiError>({ statusCode, code, message }, { status: statusCode })
+  }
+  const unauthenticated = () => error(401, 'UNAUTHENTICATED', 'Session invalide ou absente.')
+
   return [
+    http.post(`${base}/events/:id/bookings`, async ({ request, params }) => {
+      const bookings = userBookings(request)
+      if (!bookings) return unauthenticated()
+
+      const input = (await request.json().catch(() => null)) as Partial<BookingInput> | null
+      const quantity = input?.quantity
+      if (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1) {
+        return HttpResponse.json<ApiError>(
+          {
+            statusCode: 400,
+            code: 'VALIDATION_ERROR',
+            message: 'La quantité doit être un entier positif.',
+            details: [{ field: 'quantity', message: 'Saisissez un nombre entier de places.' }],
+          },
+          { status: 400 },
+        )
+      }
+
+      const event = store.eventsFor(request).find((item) => item.id === params.id)
+      if (!event || event.status !== 'PUBLISHED') {
+        return error(404, 'NOT_FOUND', 'Événement introuvable.')
+      }
+      if (quantity > event.remainingSeats) {
+        return error(409, 'INSUFFICIENT_SEATS', 'Il ne reste pas assez de places.')
+      }
+
+      const { id, name, startDate, endDate, location, status } = event
+      const booking: Booking = {
+        id: crypto.randomUUID(),
+        event: { id, name, startDate, endDate, location, status },
+        quantity,
+        status: 'CONFIRMED',
+        createdAt: new Date().toISOString(),
+      }
+      event.remainingSeats -= quantity
+      bookings.push(booking)
+      return HttpResponse.json(booking, { status: 201 })
+    }),
     http.get(`${base}/me/bookings`, ({ request }) => {
       const bookings = userBookings(request)
-      return bookings ? HttpResponse.json(bookings) : HttpResponse.json({ statusCode: 401, code: 'UNAUTHENTICATED', message: 'Session invalide ou absente.' }, { status: 401 })
+      return bookings ? HttpResponse.json(bookings) : unauthenticated()
     }),
     http.patch(`${base}/bookings/:id/cancel`, ({ request, params }) => {
       const bookings = userBookings(request)
-      if (!bookings) return HttpResponse.json({ statusCode: 401, code: 'UNAUTHENTICATED', message: 'Session invalide ou absente.' }, { status: 401 })
+      if (!bookings) return unauthenticated()
       const booking = bookings.find((item) => item.id === params.id)
-      if (!booking) return HttpResponse.json({ statusCode: 404, code: 'NOT_FOUND', message: 'Réservation introuvable.' }, { status: 404 })
-      booking.status = 'CANCELLED'
+      if (!booking) return error(404, 'NOT_FOUND', 'Réservation introuvable.')
+      if (booking.status === 'CONFIRMED') {
+        booking.status = 'CANCELLED'
+        const event = store.eventsFor(request).find((item) => item.id === booking.event.id)
+        if (event) event.remainingSeats += booking.quantity
+      }
       return HttpResponse.json(booking)
     }),
   ]
