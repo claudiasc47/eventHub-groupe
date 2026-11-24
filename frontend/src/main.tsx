@@ -20,9 +20,10 @@ async function start() {
     const { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } =
       await import('./mocks/organizer')
     const { createEventHandlers } = await import('./mocks/events')
+    const { createCatalogHandlers, demoEvents } = await import('./mocks/catalog')
     const { createEventStore } = await import('./mocks/store')
     const baseURL = env.VITE_API_URL!.trim()
-    const store = createEventStore(demoOrganizerEvents)
+    const store = createEventStore(demoEvents)
     network.configure({
       handlers: [
         ...(mocks.organizer
@@ -30,7 +31,9 @@ async function start() {
           : []),
         ...(mocks.auth ? createAuthHandlers(baseURL) : []),
         ...(mocks.bookings ? createBookingHandlers(baseURL) : []),
-        ...(mocks.events ? createEventHandlers(baseURL, store) : []),
+        ...(mocks.events
+          ? [...createEventHandlers(baseURL, store), ...createCatalogHandlers(baseURL, store)]
+          : []),
       ],
       onUnhandledFrame: 'bypass',
     })

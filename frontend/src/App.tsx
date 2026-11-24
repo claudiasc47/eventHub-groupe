@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { RequireRole } from './auth/RequireRole'
 import { Layout } from './components/Layout'
+import { CatalogPage } from './pages/CatalogPage'
 import { EventCreatePage } from './pages/EventCreatePage'
 import { EventDetailPage } from './pages/EventDetailPage'
 import { LoginPage } from './pages/LoginPage'
@@ -16,7 +17,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<PlaceholderPage title="Catalogue" ticket="#43" />} />
+          <Route index element={<CatalogPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="profile" element={<ProfilePage />} />

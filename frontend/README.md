@@ -54,6 +54,20 @@ Le compte fictif `demo@example.test` utilise le mot de passe `demo-eventhub`.
 Les comptes créés et les sessions simulées existent en mémoire jusqu'au rechargement.
 Pour utiliser l'API réelle, laisser `VITE_MOCK_AUTH=false` et configurer `VITE_API_URL`.
 
+## Catalogue
+
+La page d’accueil `/` est publique. Elle appelle `GET /events` (événements publiés), avec
+12 événements par page. Les filtres (recherche dans le nom et la description, catégorie,
+lieu, dates de début incluses et ordre) sont envoyés au format du contrat et gardés dans
+l’adresse : une recherche peut être partagée et le bouton « Précédent » du navigateur
+la restaure. Sans date choisie, le catalogue part du jour courant ; vider le champ
+« À partir du » affiche aussi les événements passés. Chaque carte mène au détail
+`/events/{id}`.
+
+Pour la démonstration locale, `VITE_MOCK_EVENTS=true` simule aussi `GET /events` et le
+détail public `GET /events/{id}` avec quelques événements publiés, datés à partir du
+jour courant.
+
 ## Mes réservations
 
 La route `/me/bookings` nécessite une session. Elle consomme `GET /me/bookings`
