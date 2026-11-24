@@ -6,7 +6,7 @@ import { createEventStore, type EventStore } from './store'
 
 const otherOrganizerId = '7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f'
 
-// Dates relatives au jour courant : le catalogue n'affiche par défaut que les événements à venir.
+// Dates relatives pour que la démo reste « à venir ».
 function inDays(days: number, hour: number): string {
   const date = new Date()
   date.setDate(date.getDate() + days)
@@ -37,7 +37,6 @@ function catalogEvent(
   }
 }
 
-/** Événements publiés par un autre organisateur, pour peupler le catalogue de démonstration. */
 export const demoCatalogEvents: Event[] = [
   catalogEvent(
     'a1c0ffee-0000-4000-8000-000000000001',
@@ -73,7 +72,6 @@ export const demoCatalogEvents: Event[] = [
   ),
 ]
 
-/** Jeu complet de la démonstration : événements de l'organisateur de démo et du catalogue. */
 export const demoEvents: Event[] = [...demoOrganizerEvents, ...demoCatalogEvents]
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
@@ -90,12 +88,10 @@ function invalid(field: string, message: string) {
   )
 }
 
-// Bornes incluses sur la date de début, comme le Back : `dateTo` couvre toute la journée.
 function dayStart(date: string): number {
   return Date.parse(`${date}T00:00:00.000Z`)
 }
 
-/** Simule `GET /events` : catalogue public des événements publiés, filtré, trié et paginé. */
 export function createCatalogHandlers(
   baseURL: string,
   store: EventStore = createEventStore(demoEvents),
@@ -149,8 +145,7 @@ export function createCatalogHandlers(
         total: matching.length,
       } satisfies EventPage)
     }),
-    // Détail public d'un événement publié. Quand le mock organisateur est aussi actif, son
-    // propre `GET /events/:id` (déclaré avant) répond en premier et gère les brouillons.
+    // Si le mock organisateur est actif, son GET /events/:id répond en premier.
     http.get(`${base}/events/:id`, ({ request, params }) => {
       const event = store
         .eventsFor(request)

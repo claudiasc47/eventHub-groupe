@@ -8,13 +8,11 @@ type EventFormFieldsProps = {
   onChange: (name: EventField, value: string) => void
   locations: NamedRef[]
   categories: NamedRef[]
-  /** Lieu et catégorie d'un événement existant, gardés même si l'API ne les propose plus. */
   current?: { location: NamedRef; category: NamedRef }
 }
 
 type ControlElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
 
-/** Champs communs aux formulaires de création et de modification d'un événement. */
 export function EventFormFields({
   values,
   errors,

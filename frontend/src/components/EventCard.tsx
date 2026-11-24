@@ -9,7 +9,6 @@ type EventCardProps = {
   children: ReactNode
 }
 
-/** Carte d'un événement, partagée par le catalogue et « Mes événements ». */
 export function EventCard({ event, badge, children }: EventCardProps) {
   const { remainingSeats, capacity } = event
   return (
