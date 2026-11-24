@@ -16,7 +16,7 @@ async function start() {
   if (env.DEV && Object.values(mocks).some(Boolean)) {
     const { network } = await import('virtual:msw')
     const { createAuthHandlers } = await import('./mocks/auth')
-    const { createBookingHandlers } = await import('./mocks/bookings')
+    const { createBookingHandlers, demoBookings } = await import('./mocks/bookings')
     const { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } =
       await import('./mocks/organizer')
     const { createEventHandlers } = await import('./mocks/events')
@@ -29,7 +29,7 @@ async function start() {
           ? createOrganizerHandlers(baseURL, demoOrganizerEvents, demoOrganizer, store)
           : []),
         ...(mocks.auth ? createAuthHandlers(baseURL) : []),
-        ...(mocks.bookings ? createBookingHandlers(baseURL) : []),
+        ...(mocks.bookings ? createBookingHandlers(baseURL, demoBookings, store) : []),
         ...(mocks.events ? createEventHandlers(baseURL, store) : []),
       ],
       onUnhandledFrame: 'bypass',
