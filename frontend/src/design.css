@@ -73,6 +73,13 @@ h1 { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.1; letter-spacing: -.04
 .event-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
 .event-filters [aria-pressed='true'] { background: var(--accent); color: var(--on-accent); }
 .event-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.event-detail-page { max-width: 52rem; margin: 0 auto; }
+.event-detail-page > a { display: inline-block; margin-bottom: 1rem; }
+.event-detail-page h1 { overflow-wrap: anywhere; }
+.event-detail-facts { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); margin: 0; }
+.event-detail-facts dt { color: var(--muted); }
+.event-detail-facts dd { margin: .25rem 0 0; font-weight: 600; }
+.event-card-actions { display: flex; align-items: baseline; flex-wrap: wrap; gap: .75rem; }
 .edit-event-page { max-width: 52rem; margin: 0 auto; }
 .edit-event-form { padding: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; }
 .edit-event-form fieldset { display: grid; gap: 1rem; border: 0; padding: 0; margin: 0; min-width: 0; }

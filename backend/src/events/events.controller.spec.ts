@@ -9,8 +9,17 @@ jest.mock('../common/guards/jwt-auth.guard', () => ({
   },
 }))
 
+jest.mock('../common/guards/optional-jwt-auth.guard', () => ({
+  OptionalJwtAuthGuard: class MockOptionalJwtAuthGuard {
+    canActivate() {
+      return true
+    }
+  },
+}))
+
 import { ROLES_KEY } from '../common/decorators/roles.decorator'
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard'
 import { RolesGuard } from '../common/guards/roles.guard'
 import { AuthUser } from '../common/types/authenticated-request'
 import { UserRole } from '../users/user.entity'
@@ -105,8 +114,13 @@ describe('EventsController', () => {
 
       const result = await controller.findOne(mockEventResponse.id)
 
-      expect(eventsService.findOne).toHaveBeenCalledWith(mockEventResponse.id)
+      expect(eventsService.findOne).toHaveBeenCalledWith(mockEventResponse.id, undefined)
       expect(result).toBe(mockEventResponse)
+    })
+
+    it('passes the identity of the authenticated viewer', async () => {
+      await controller.findOne(mockEventResponse.id, organizer)
+      expect(eventsService.findOne).toHaveBeenCalledWith(mockEventResponse.id, organizer.id)
     })
   })
 
@@ -149,8 +163,11 @@ describe('EventsController', () => {
       },
     )
 
-    it.each(['findAll', 'findOne'] as const)('%s remains public', (method) => {
-      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf(method))).toBeUndefined()
+    it('keeps the catalogue public and reads an optional token on the detail route', () => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf('findAll'))).toBeUndefined()
+      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf('findOne'))).toEqual([
+        OptionalJwtAuthGuard,
+      ])
     })
   })
 })

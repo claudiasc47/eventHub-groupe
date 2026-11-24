@@ -129,6 +129,17 @@ pendant la navigation vers « Mes événements », puis réinitialisés au recha
 La recette réelle des autorisations, de la persistance et des conflits de capacité
 reste à effectuer avec les mocks désactivés.
 
+## Détail d’un événement
+
+`/events/:id` affiche les informations et les places disponibles via
+`GET /events/{id}`. Un événement publié est visible sans connexion. L’API
+vérifie l’identité du visiteur pour les brouillons et renvoie `404` aux autres
+visiteurs.
+
+Avec `VITE_MOCK_ORGANIZER=true`, ouvrir
+`/events/e1be1089-12ef-46d3-89ab-916db978cbb5` pour voir un événement publié
+de démonstration.
+
 ## Thèmes et visuel
 
 `src/design.css` contient les couleurs et styles partagés. Le bouton de navigation
