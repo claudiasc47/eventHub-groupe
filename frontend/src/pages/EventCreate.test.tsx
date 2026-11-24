@@ -6,6 +6,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import App from '../App'
 import type { Role } from '../api/types'
 import { createEventHandlers, demoCategories, demoLocations } from '../mocks/events'
+import { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } from '../mocks/organizer'
+import { createEventStore } from '../mocks/store'
 
 const base = import.meta.env.VITE_API_URL!
 const eventsURL = `${base}/events`
@@ -129,6 +131,25 @@ describe('Création d’événement — organisateur', () => {
     ])
   })
 
+  it('retrouve l’événement créé sur la page de modification et dans « Mes événements »', async () => {
+    const store = createEventStore(demoOrganizerEvents)
+    server.resetHandlers(
+      ...createOrganizerHandlers(base, demoOrganizerEvents, demoOrganizer, store),
+      ...createEventHandlers(base, store),
+    )
+    const { user } = renderPage()
+
+    await fillForm(user)
+    await submit(user)
+    await user.click(await screen.findByRole('link', { name: 'Modifier ou publier l’événement' }))
+
+    expect(await screen.findByLabelText('Nom')).toHaveValue('Concert Jazz')
+    expect(screen.getByText('Brouillon')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: '← Mes événements' }))
+    const list = await screen.findByRole('list', { name: 'Vos événements' })
+    expect(list).toHaveTextContent('Concert Jazz')
+  })
+
   it('refuse une fin antérieure au début sans appeler l’API', async () => {
     let calls = 0
     server.use(
@@ -142,8 +163,29 @@ describe('Création d’événement — organisateur', () => {
     await fillForm(user, { start: '2026-12-15T20:00', end: '2026-12-15T18:00' })
     await submit(user)
 
-    expect(await screen.findByText('La fin doit être après le début.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('La fin doit être postérieure ou égale au début.'),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText(/^Fin/)).toHaveAttribute('aria-invalid', 'true')
+    expect(calls).toBe(0)
+  })
+
+  it('signale les champs obligatoires manquants sans appeler l’API', async () => {
+    let calls = 0
+    server.use(
+      http.post(eventsURL, () => {
+        calls += 1
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderPage()
+
+    await screen.findByRole('option', { name: demoLocations[0].name })
+    await submit(user)
+
+    expect(screen.getByLabelText(/^Nom/)).toHaveAccessibleDescription('Le nom est obligatoire.')
+    expect(screen.getByLabelText(/^Lieu/)).toHaveAccessibleDescription('Choisissez un lieu.')
+    expect(screen.getByLabelText(/^Capacité/)).toHaveAttribute('aria-invalid', 'true')
     expect(calls).toBe(0)
   })
 

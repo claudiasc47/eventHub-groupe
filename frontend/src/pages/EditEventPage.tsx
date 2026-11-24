@@ -4,19 +4,10 @@ import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Event, EventUpdate, NamedRef, User } from '../api/types'
 import { clearSession, useSessionToken } from '../auth/session'
+import { EventFormFields } from '../components/EventFormFields'
+import { toEventFormValues as toForm, toEventInput, validateEventForm, type EventFormErrors, type EventFormValues as Form } from '../components/eventForm'
 
-type Form = { name: string; description: string; startDate: string; endDate: string; locationId: string; categoryId: string; capacity: string }
 type Data = { event: Event; locations: NamedRef[]; categories: NamedRef[] }
-
-function localDate(value: string) {
-  const date = new Date(value)
-  const pad = (part: number) => String(part).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
-function toForm(event: Event): Form {
-  return { name: event.name, description: event.description ?? '', startDate: localDate(event.startDate), endDate: localDate(event.endDate), locationId: event.location.id, categoryId: event.category.id, capacity: String(event.capacity) }
-}
 
 export function EditEventPage() {
   const token = useSessionToken()
@@ -31,7 +22,7 @@ function EditEvent({ id }: { id: string }) {
   const [loadError, setLoadError] = useState('')
   const [access, setAccess] = useState<'forbidden' | 'missing' | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<EventFormErrors>({})
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState(false)
@@ -90,28 +81,19 @@ function EditEvent({ id }: { id: string }) {
 
   function changes(): EventUpdate | null {
     if (!form || !data) return null
-    const next: Record<string, string> = {}
-    if (!form.name.trim()) next.name = 'Le nom est obligatoire.'
-    const start = new Date(form.startDate)
-    const end = new Date(form.endDate)
-    if (!form.startDate || !Number.isFinite(+start)) next.startDate = 'Renseignez une date de début valide.'
-    if (!form.endDate || !Number.isFinite(+end)) next.endDate = 'Renseignez une date de fin valide.'
-    else if (+end < +start) next.endDate = 'La fin doit être postérieure ou égale au début.'
-    const capacity = Number(form.capacity)
-    if (!Number.isSafeInteger(capacity) || capacity < 1) next.capacity = 'La capacité doit être un entier positif.'
-    if (!form.locationId) next.locationId = 'Choisissez un lieu.'
-    if (!form.categoryId) next.categoryId = 'Choisissez une catégorie.'
-    setErrors(next)
-    if (Object.keys(next).length) return null
+    const invalid = validateEventForm(form)
+    setErrors(invalid)
+    if (Object.keys(invalid).length) return null
+    const next = toEventInput(form)
     const original = toForm(data.event)
     const patch: EventUpdate = {}
-    if (form.name.trim() !== original.name) patch.name = form.name.trim()
+    if (next.name !== original.name) patch.name = next.name
     if (form.description !== original.description) patch.description = form.description || null
-    if (form.startDate !== original.startDate) patch.startDate = start.toISOString()
-    if (form.endDate !== original.endDate) patch.endDate = end.toISOString()
+    if (form.startDate !== original.startDate) patch.startDate = next.startDate
+    if (form.endDate !== original.endDate) patch.endDate = next.endDate
     if (form.locationId !== original.locationId) patch.locationId = form.locationId
     if (form.categoryId !== original.categoryId) patch.categoryId = form.categoryId
-    if (capacity !== data.event.capacity) patch.capacity = capacity
+    if (next.capacity !== data.event.capacity) patch.capacity = next.capacity
     return patch
   }
 
@@ -170,35 +152,10 @@ function EditEvent({ id }: { id: string }) {
           {error && <p role="alert">{error}</p>}
           <form className="auth-form edit-event-form" onSubmit={save} noValidate>
             <fieldset disabled={pending}>
-              {([
-                ['name', 'Nom', 'text'], ['startDate', 'Début', 'datetime-local'],
-                ['endDate', 'Fin', 'datetime-local'], ['capacity', 'Capacité', 'number'],
-              ] as const).map(([name, label, type]) => (
-                <div key={name}><label htmlFor={`event-${name}`}>{label}</label>
-                  <input id={`event-${name}`} type={type} required min={name === 'capacity' ? 1 : undefined} step={type === 'datetime-local' || type === 'number' ? 1 : undefined}
-                    value={form[name]} onChange={(event) => setForm({ ...form, [name]: event.target.value })}
-                    aria-invalid={errors[name] ? true : undefined} aria-describedby={errors[name] ? `${name}-error` : undefined} />
-                  {errors[name] && <p role="alert" id={`${name}-error`}>{errors[name]}</p>}
-                </div>
-              ))}
-              <div><label htmlFor="event-description">Description (facultatif)</label>
-                <textarea id="event-description" rows={5} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })}
-                  aria-invalid={errors.description ? true : undefined} aria-describedby={errors.description ? 'description-error' : undefined} />
-                {errors.description && <p role="alert" id="description-error">{errors.description}</p>}
-              </div>
-              {([
-                ['locationId', 'Lieu', data.locations, data.event.location],
-                ['categoryId', 'Catégorie', data.categories, data.event.category],
-              ] as const).map(([name, label, options, current]) => (
-                <div key={name}><label htmlFor={`event-${name}`}>{label}</label>
-                  <select id={`event-${name}`} value={form[name]} onChange={(event) => setForm({ ...form, [name]: event.target.value })}
-                    aria-invalid={errors[name] ? true : undefined} aria-describedby={errors[name] ? `${name}-error` : undefined}>
-                    {!options.some((option) => option.id === current.id) && <option value={current.id}>{current.name}</option>}
-                    {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-                  </select>
-                  {errors[name] && <p role="alert" id={`${name}-error`}>{errors[name]}</p>}
-                </div>
-              ))}
+              <EventFormFields values={form} errors={errors} locations={data.locations} categories={data.categories}
+                current={{ location: data.event.location, category: data.event.category }}
+                onChange={(name, value) => setForm((current) => current && { ...current, [name]: value })} />
+
               <div className="dialog-actions">
                 <button type="submit">{pending ? 'Enregistrement…' : 'Enregistrer les modifications'}</button>
                 {data.event.status === 'DRAFT' && <button type="button" className="secondary-button" onClick={() => {

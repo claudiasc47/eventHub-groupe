@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw/http'
 import type { Event, EventUpdate, User } from '../api/types'
+import { createEventStore, type EventStore } from './store'
 
 export const demoOrganizer: User = {
   id: '5b0f3c1e-8a2d-4c6e-9f10-2d3e4f5a6b7c',
@@ -28,18 +29,13 @@ export const demoOrganizerEvents: Event[] = [
   },
 ]
 
-export function createOrganizerHandlers(baseURL: string, initial: Event[] = demoOrganizerEvents, user: User = demoOrganizer) {
+export function createOrganizerHandlers(baseURL: string, initial: Event[] = demoOrganizerEvents, user: User = demoOrganizer, store: EventStore = createEventStore(initial)) {
   const base = baseURL.replace(/\/$/, '')
   const authorized = (request: Request) => /^Bearer .+$/i.test(request.headers.get('Authorization') ?? '')
   const unauthenticated = () => HttpResponse.json({ statusCode: 401, code: 'UNAUTHENTICATED', message: 'Session invalide ou absente.' }, { status: 401 })
-  const stores = new Map<string, Event[]>()
   const locations = demoOrganizerEvents.map((event) => event.location)
   const categories = demoOrganizerEvents.map((event) => event.category)
-  function eventsFor(request: Request) {
-    const token = request.headers.get('Authorization') ?? ''
-    if (!stores.has(token)) stores.set(token, structuredClone(initial))
-    return stores.get(token)!
-  }
+  const eventsFor = store.eventsFor
   const forbidden = () => HttpResponse.json({ statusCode: 403, code: 'FORBIDDEN', message: 'Accès non autorisé.' }, { status: 403 })
   const missing = () => HttpResponse.json({ statusCode: 404, code: 'NOT_FOUND', message: 'Événement introuvable.' }, { status: 404 })
   return [

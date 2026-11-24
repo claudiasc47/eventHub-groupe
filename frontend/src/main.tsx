@@ -17,15 +17,20 @@ async function start() {
     const { network } = await import('virtual:msw')
     const { createAuthHandlers } = await import('./mocks/auth')
     const { createBookingHandlers } = await import('./mocks/bookings')
-    const { createOrganizerHandlers } = await import('./mocks/organizer')
+    const { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } =
+      await import('./mocks/organizer')
     const { createEventHandlers } = await import('./mocks/events')
+    const { createEventStore } = await import('./mocks/store')
     const baseURL = env.VITE_API_URL!.trim()
+    const store = createEventStore(demoOrganizerEvents)
     network.configure({
       handlers: [
-        ...(mocks.organizer ? createOrganizerHandlers(baseURL) : []),
+        ...(mocks.organizer
+          ? createOrganizerHandlers(baseURL, demoOrganizerEvents, demoOrganizer, store)
+          : []),
         ...(mocks.auth ? createAuthHandlers(baseURL) : []),
         ...(mocks.bookings ? createBookingHandlers(baseURL) : []),
-        ...(mocks.events ? createEventHandlers(baseURL) : []),
+        ...(mocks.events ? createEventHandlers(baseURL, store) : []),
       ],
       onUnhandledFrame: 'bypass',
     })

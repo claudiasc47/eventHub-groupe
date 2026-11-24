@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw/http'
 import type { ApiError, Event, EventInput, FieldError, NamedRef } from '../api/types'
 import { demoOrganizer, demoOrganizerEvents } from './organizer'
+import { createEventStore, type EventStore } from './store'
 
 // Une seule source de lieux et catégories de démo, partagée avec le mock organisateur
 // (qui répond aussi à GET /locations et GET /categories) : sinon le formulaire proposerait
@@ -47,9 +48,11 @@ function validate(input: Partial<EventInput>): FieldError[] {
 
 // Simule les routes du contrat v0.1 utilisées par la création d'événement.
 // Limite : le mock vérifie la présence d'un jeton, pas le rôle de son propriétaire.
-export function createEventHandlers(baseURL: string) {
+export function createEventHandlers(
+  baseURL: string,
+  store: EventStore = createEventStore(demoOrganizerEvents),
+) {
   const base = baseURL.replace(/\/$/, '')
-  const events: Event[] = []
 
   return [
     http.get(`${base}/locations`, () => HttpResponse.json(demoLocations)),
@@ -87,7 +90,7 @@ export function createEventHandlers(baseURL: string) {
         remainingSeats: capacity,
         organizerId: demoOrganizer.id,
       }
-      events.push(event)
+      store.eventsFor(request).push(event)
       return HttpResponse.json(event, { status: 201 })
     }),
   ]

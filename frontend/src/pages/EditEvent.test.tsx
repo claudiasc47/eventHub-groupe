@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import App from '../App'
 import { createOrganizerHandlers, demoOrganizer, demoOrganizerEvents } from '../mocks/organizer'
 
-const base = import.meta.env.VITE_API_URL
+const base = import.meta.env.VITE_API_URL!
 const draft = demoOrganizerEvents[1]
 const published = demoOrganizerEvents[0]
 const server = setupServer()
