@@ -232,6 +232,20 @@ export class EventsService {
     }
   }
 
+  async findByOrganizer(organizerId: string): Promise<EventResponse[]> {
+    const events = await this.eventsRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.location', 'location')
+      .leftJoinAndSelect('event.category', 'category')
+      .leftJoinAndSelect('event.organizer', 'organizer')
+      .where('organizer.id = :organizerId', { organizerId })
+      .orderBy('event.startDate', 'ASC')
+      .addOrderBy('event.id', 'ASC')
+      .getMany();
+
+    return events.map((event) => this.toResponse(event));
+  }
+
   private async loadEvent(id: string): Promise<Event> {
     const event = await this.eventsRepository
       .createQueryBuilder('event')
@@ -308,4 +322,6 @@ export class EventsService {
       organizerId: event.organizer.id,
     };
   }
+
+  
 }

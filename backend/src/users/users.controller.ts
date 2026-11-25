@@ -42,6 +42,7 @@ export class UsersController {
     }
     return toUserResponse(user);
   }
+  
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
