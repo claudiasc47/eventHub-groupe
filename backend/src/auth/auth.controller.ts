@@ -25,6 +25,9 @@ export class AuthController {
   @HttpCode(200)
   async resendVerification(@Body() dto: ResendVerificationDto) {
     await this.auth.resendVerification(dto);
-    return { message: 'Si un compte non vérifié existe pour cet email, un nouveau lien a été envoyé.' };
+    return {
+      message:
+        'Si un compte non vérifié existe pour cet email, un nouveau lien a été envoyé.',
+    };
   }
 }

@@ -12,19 +12,19 @@ import {
   Post,
   Query,
   UseGuards,
-} from '@nestjs/common'
-import { ApiBearerAuth } from '@nestjs/swagger'
-import { CurrentUser } from '../common/decorators/current-user.decorator'
-import { Roles } from '../common/decorators/roles.decorator'
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
-import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard'
-import { RolesGuard } from '../common/guards/roles.guard'
-import type { AuthUser } from '../common/types/authenticated-request'
-import { UserRole } from '../users/user.entity'
-import { CreateEventDto } from './dto/create-event.dto'
-import { FilterEventDto } from './dto/filter-event.dto'
-import { UpdateEventDto } from './dto/update-event.dto'
-import { EventsService } from './events.service'
+} from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import type { AuthUser } from '../common/types/authenticated-request';
+import { UserRole } from '../users/user.entity';
+import { CreateEventDto } from './dto/create-event.dto';
+import { FilterEventDto } from './dto/filter-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+import { EventsService } from './events.service';
 
 @Controller('events')
 export class EventsController {
@@ -32,7 +32,7 @@ export class EventsController {
 
   @Get()
   findAll(@Query() filters: FilterEventDto) {
-    return this.eventsService.findAll(filters)
+    return this.eventsService.findAll(filters);
   }
 
   @Post()
@@ -40,14 +40,17 @@ export class EventsController {
   @Roles(UserRole.ORGANIZER)
   @ApiBearerAuth()
   create(@Body() input: CreateEventDto, @CurrentUser() user: AuthUser) {
-    return this.eventsService.create(input, user.id)
+    return this.eventsService.create(input, user.id);
   }
 
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   @Header('Cache-Control', 'private, no-store')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user?: AuthUser) {
-    return this.eventsService.findOne(id, user?.id)
+  findOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user?: AuthUser,
+  ) {
+    return this.eventsService.findOne(id, user?.id);
   }
 
   @Patch(':id')
@@ -59,7 +62,7 @@ export class EventsController {
     @Body() input: UpdateEventDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.eventsService.update(id, input, user.id)
+    return this.eventsService.update(id, input, user.id);
   }
 
   @Delete(':id')
@@ -71,6 +74,6 @@ export class EventsController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthUser,
   ): Promise<void> {
-    return this.eventsService.remove(id, user.id)
+    return this.eventsService.remove(id, user.id);
   }
 }
