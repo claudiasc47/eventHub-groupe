@@ -20,7 +20,11 @@ export class BookingsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(userId: string, eventId: string, quantity: number): Promise<Booking> {
+  async create(
+    userId: string,
+    eventId: string,
+    quantity: number,
+  ): Promise<Booking> {
     const bookingId = await this.dataSource.transaction(async (manager) => {
       const event = await manager.findOne(Event, {
         where: { id: eventId },
@@ -28,7 +32,10 @@ export class BookingsService {
       });
 
       if (!event || String(event.status) !== PUBLISHED) {
-        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Événement introuvable.' });
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: 'Événement introuvable.',
+        });
       }
       if (event.remainingSeats < quantity) {
         throw new ConflictException({
@@ -37,7 +44,12 @@ export class BookingsService {
         });
       }
 
-      await manager.decrement(Event, { id: eventId }, 'remainingSeats', quantity);
+      await manager.decrement(
+        Event,
+        { id: eventId },
+        'remainingSeats',
+        quantity,
+      );
 
       const booking = await manager.save(
         manager.create(Booking, {
@@ -71,7 +83,10 @@ export class BookingsService {
         .getOne();
 
       if (!locked) {
-        throw new NotFoundException({ code: 'NOT_FOUND', message: 'Réservation introuvable.' });
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: 'Réservation introuvable.',
+        });
       }
 
       const booking = await manager.findOneOrFail(Booking, {
@@ -82,13 +97,18 @@ export class BookingsService {
       if (booking.user.id !== userId) {
         throw new ForbiddenException({
           code: 'FORBIDDEN',
-          message: "Cette réservation ne vous appartient pas.",
+          message: 'Cette réservation ne vous appartient pas.',
         });
       }
       if (booking.status === CANCELLED) return;
 
       await manager.update(Booking, booking.id, { status: CANCELLED });
-      await manager.increment(Event, { id: booking.event.id }, 'remainingSeats', booking.quantity);
+      await manager.increment(
+        Event,
+        { id: booking.event.id },
+        'remainingSeats',
+        booking.quantity,
+      );
     });
 
     return this.findOneWithEvent(bookingId);

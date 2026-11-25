@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { toUserResponse } from '../users/dto/user.response';
@@ -6,8 +10,6 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-
-
 
 @Injectable()
 export class AuthService {
@@ -30,7 +32,8 @@ export class AuthService {
     if (!user.emailVerifiedAt) {
       throw new ForbiddenException({
         code: 'EMAIL_NOT_VERIFIED',
-        message: 'Veuillez confirmer votre adresse email avant de vous connecter.',
+        message:
+          'Veuillez confirmer votre adresse email avant de vous connecter.',
       });
     }
 
