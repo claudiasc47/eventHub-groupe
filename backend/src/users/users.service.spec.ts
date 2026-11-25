@@ -3,15 +3,22 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import * as bcrypt from 'bcrypt'
 import { Repository } from 'typeorm'
+import { MailService } from '../mail/mail.service'
 import { RegisterDto } from './dto/register.dto'
 import { User, UserRole } from './user.entity'
 import { UsersService } from './users.service'
-import { MailService } from '../mail/mail.service'
 
+// Mock de bcrypt pour éviter un vrai hachage coûteux en CPU lors des tests unitaires
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
 }))
 
+/**
+ * Tests unitaires du service UsersService.
+ * On simule (mock) le repository TypeORM User, MailService et bcrypt afin de tester
+ * la normalisation des emails, le hachage du mot de passe, la génération du token de
+ * vérification et les requêtes de recherche sans base de données PostgreSQL.
+ */
 describe('UsersService', () => {
   let service: UsersService
   let repository: jest.Mocked<
@@ -22,6 +29,7 @@ describe('UsersService', () => {
   >
 
   beforeEach(async () => {
+    // Réinitialise l'état des mocks avant chaque scénario de test
     jest.clearAllMocks()
 
     repository = {
@@ -32,14 +40,25 @@ describe('UsersService', () => {
       find: jest.fn(),
       createQueryBuilder: jest.fn(),
     }
-    const mail = { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) };
 
+    // Simulation du service d'envoi d'e-mails pour ne pas envoyer de vrais courriels
+    const mail = { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) }
+
+    // Instanciation isolée du service avec le repository et MailService simulés
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: getRepositoryToken(User), useValue: repository },{ provide: MailService, useValue: mail }],
+      providers: [
+        UsersService,
+        { provide: getRepositoryToken(User), useValue: repository },
+        { provide: MailService, useValue: mail },
+      ],
     }).compile()
 
     service = module.get(UsersService)
   })
+
+  // ============================================================================
+  // 1. Tests d'inscription : register(dto)
+  // ============================================================================
 
   describe('register', () => {
     const dto: RegisterDto = {
@@ -49,6 +68,8 @@ describe('UsersService', () => {
     }
 
     it('normalizes email, hashes password and saves a new user', async () => {
+      // Cas nominal : l'email est converti en minuscules, le mot de passe est haché (coût 10)
+      // et un jeton de vérification d'email (hash + date d'expiration) est généré
       const savedUser = {
         id: 'user-1',
         email: 'alice@example.com',
@@ -80,15 +101,24 @@ describe('UsersService', () => {
     })
 
     it('throws ConflictException when email is already used', async () => {
+      // Si l'adresse email est déjà présente en base -> erreur 409 Conflict
       repository.existsBy.mockResolvedValue(true)
 
       await expect(service.register(dto)).rejects.toThrow(ConflictException)
+      // Aucun enregistrement ne doit être tenté en base
       expect(repository.save).not.toHaveBeenCalled()
     })
   })
 
+  // ============================================================================
+  // 2. Test de recherche pour la connexion : findByEmailWithPassword(email)
+  // ============================================================================
+
   describe('findByEmailWithPassword', () => {
     it('queries user with passwordHash using lowercase email', async () => {
+      // Par défaut, passwordHash est masqué sur l'entité User (select: false).
+      // On vérifie donc que le QueryBuilder ajoute explicitement addSelect('u.passwordHash')
+      // et recherche avec l'email normalisé en minuscules
       const user = { id: 'user-1', email: 'alice@example.com' } as User
       const qb = {
         addSelect: jest.fn().mockReturnThis(),
@@ -108,8 +138,13 @@ describe('UsersService', () => {
     })
   })
 
+  // ============================================================================
+  // 3. Tests de lecture : findById(id) et findAll()
+  // ============================================================================
+
   describe('findById & findAll', () => {
     it('returns a user by id', async () => {
+      // Recherche simple par identifiant UUID
       const user = { id: 'user-1' } as User
       repository.findOneBy.mockResolvedValue(user)
 
@@ -118,6 +153,7 @@ describe('UsersService', () => {
     })
 
     it('lists all users ordered by createdAt ASC', async () => {
+      // Vérifie que la liste des utilisateurs est triée par ordre chronologique d'inscription
       const users = [{ id: 'user-1' }] as User[]
       repository.find.mockResolvedValue(users)
 
