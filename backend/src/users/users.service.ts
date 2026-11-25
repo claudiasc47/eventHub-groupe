@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { RegisterDto } from './dto/register.dto';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { MailService } from '../mail/mail.service';
 import { createVerificationToken, hashToken, TOKEN_LIFETIME_MS } from '../common/utils/verification-token';
 
@@ -114,5 +114,14 @@ export class UsersService {
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  async updateRole(id: string, role: UserRole): Promise<User> {
+    const result = await this.users.update(id, { role });
+
+    if (!result.affected) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Utilisateur introuvable.' });
+    }
+    return this.users.findOneByOrFail({ id });
   }
 }

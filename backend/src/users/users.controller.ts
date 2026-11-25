@@ -2,6 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   UnauthorizedException,
   UseGuards,
@@ -15,6 +18,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UserRole } from './user.entity';
+import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Controller('users')
 export class UsersController {
@@ -45,5 +49,16 @@ export class UsersController {
   async list() {
     const all = await this.users.findAll();
     return all.map(toUserResponse);
+  }
+
+  @Patch(':id/role')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  async updateRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateRoleDto,
+  ) {
+    return toUserResponse(await this.users.updateRole(id, dto.role));
   }
 }
