@@ -1,5 +1,6 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import type { EventSearchState } from '../api/useEventSearch'
+import { toBackState } from './backLink'
 import { EventCard } from './EventCard'
 
 type CatalogResultsProps = {
@@ -14,6 +15,7 @@ type CatalogResultsProps = {
 
 export function CatalogResults(props: CatalogResultsProps) {
   const { state, isUpdating, isFiltered, page, onRetry, onPage, onReset } = props
+  const location = useLocation()
   if (state.status === 'loading') return <p role="status">Chargement des événements…</p>
   if (state.status === 'error') {
     return (
@@ -49,6 +51,7 @@ export function CatalogResults(props: CatalogResultsProps) {
               <Link
                 className="button-link"
                 to={`/events/${event.id}`}
+                state={toBackState(location)}
                 aria-label={`Voir le détail : ${event.name}`}
               >
                 Voir le détail

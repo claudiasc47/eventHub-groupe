@@ -9,6 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { state } = useLocation()
   const bookingEventId: unknown = state?.bookingEventId
+  const backState: unknown = state?.backState
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -31,7 +32,7 @@ export function LoginPage() {
         typeof bookingEventId === 'string' && bookingEventId
           ? `/events/${encodeURIComponent(bookingEventId)}`
           : '/profile'
-      navigate(destination, { replace: true })
+      navigate(destination, { replace: true, state: backState })
     } catch (error) {
       const { status, message } = getApiError(error)
       setFormError(status === 401 ? 'Email ou mot de passe incorrect.' : message)

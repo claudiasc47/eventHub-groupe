@@ -1,4 +1,5 @@
 import type { EventSearchQuery } from '../api/useEventSearch'
+import { today } from './dateOnly'
 
 export const CATALOG_PAGE_SIZE = 12
 
@@ -14,12 +15,6 @@ export type Filters = {
 }
 
 const DEFAULT_SORT: Sort = 'startDate:asc'
-
-export function today(): string {
-  const now = new Date()
-  const pad = (part: number) => String(part).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-}
 
 // dateFrom absent : à partir d'aujourd'hui ; dateFrom vide : sans borne.
 export function readFilters(params: URLSearchParams): Filters {

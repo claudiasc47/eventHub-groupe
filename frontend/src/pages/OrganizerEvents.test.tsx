@@ -51,6 +51,14 @@ describe('Mes événements organisateur', () => {
     expect(within(screen.getByRole('main')).getByRole('link', { name: 'Créer un événement' })).toHaveAttribute('href', '/events/new')
   })
 
+  it('revient à mes événements depuis le détail', async () => {
+    const { user } = openPage()
+    await user.click(await screen.findByRole('link', { name: 'Voir Rencontres créatives' }))
+    await user.click(await screen.findByRole('link', { name: 'Retour à mes événements' }))
+    expect(await screen.findByRole('list', { name: 'Vos événements' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/me/events')
+  })
+
   it('filtre les brouillons et les événements publiés sans nouvelle requête', async () => {
     const { user } = openPage()
     await screen.findByRole('list', { name: 'Vos événements' })

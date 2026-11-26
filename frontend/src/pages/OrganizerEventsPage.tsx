@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Event, User } from '../api/types'
 import { clearSession, useSessionToken } from '../auth/session'
+import { toBackState } from '../components/backLink'
 import { EventCard } from '../components/EventCard'
 
 type Filter = 'ALL' | 'DRAFT' | 'PUBLISHED'
@@ -14,6 +15,7 @@ export function OrganizerEventsPage() {
 }
 
 function OrganizerEvents() {
+  const location = useLocation()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
@@ -98,7 +100,7 @@ function OrganizerEvents() {
               {visible.map((event) => (
                 <EventCard key={event.id} event={event}
                   badge={<span className={`booking-badge ${event.status === 'DRAFT' ? 'cancelled' : ''}`}>{event.status === 'DRAFT' ? 'Brouillon' : 'Publié'}</span>}>
-                  <Link to={`/events/${event.id}`}>Voir {event.name}</Link>
+                  <Link to={`/events/${event.id}`} state={toBackState(location)}>Voir {event.name}</Link>
                   <Link className="button-link" to={`/events/${event.id}/edit`}>Modifier {event.name}</Link>
                 </EventCard>
               ))}
