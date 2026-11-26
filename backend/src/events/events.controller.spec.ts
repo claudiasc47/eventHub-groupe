@@ -1,42 +1,52 @@
-import { GUARDS_METADATA } from '@nestjs/common/constants'
-import { Test, TestingModule } from '@nestjs/testing'
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Test, TestingModule } from '@nestjs/testing';
 
+// Mock des guards JWT avant l'import du contrôleur pour tester les routes
+// sans avoir à générer de vrais tokens d'authentification
 jest.mock('../common/guards/jwt-auth.guard', () => ({
   JwtAuthGuard: class MockJwtAuthGuard {
     canActivate() {
-      return true
+      return true;
     }
   },
-}))
+}));
 
 jest.mock('../common/guards/optional-jwt-auth.guard', () => ({
   OptionalJwtAuthGuard: class MockOptionalJwtAuthGuard {
     canActivate() {
-      return true
+      return true;
     }
   },
-}))
+}));
 
-import { ROLES_KEY } from '../common/decorators/roles.decorator'
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
-import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard'
-import { RolesGuard } from '../common/guards/roles.guard'
-import { AuthUser } from '../common/types/authenticated-request'
-import { UserRole } from '../users/user.entity'
-import { CreateEventDto } from './dto/create-event.dto'
-import { FilterEventDto } from './dto/filter-event.dto'
-import { UpdateEventDto } from './dto/update-event.dto'
-import { EventsController } from './events.controller'
-import { EventsService } from './events.service'
+import { ROLES_KEY } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { AuthUser } from '../common/types/authenticated-request';
+import { UserRole } from '../users/user.entity';
+import { CreateEventDto } from './dto/create-event.dto';
+import { FilterEventDto } from './dto/filter-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+import { EventsController } from './events.controller';
+import { EventsService } from './events.service';
 
+/**
+ * Tests unitaires du contrôleur EventsController.
+ * Vérifie que chaque endpoint délègue correctement au service EventsService
+ * et que les décorateurs de sécurité (@UseGuards, @Roles) protègent bien
+ * les routes d'écriture tout en laissant le catalogue public.
+ */
 describe('EventsController', () => {
-  let controller: EventsController
+  let controller: EventsController;
   let eventsService: jest.Mocked<
     Pick<EventsService, 'findAll' | 'create' | 'findOne' | 'update' | 'remove'>
-  >
+  >;
 
-  const organizer: AuthUser = { id: 'org-1', role: UserRole.ORGANIZER }
+  // Organisateur authentifié simulé injecté par @CurrentUser()
+  const organizer: AuthUser = { id: 'org-1', role: UserRole.ORGANIZER };
 
+  // Objet événement de référence retourné par les mocks du service
   const mockEventResponse = {
     id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Conférence NestJS',
@@ -49,10 +59,11 @@ describe('EventsController', () => {
     capacity: 50,
     remainingSeats: 50,
     organizerId: 'org-1',
-  }
+  };
 
   beforeEach(async () => {
-    jest.clearAllMocks()
+    // Réinitialise l'état des mocks avant chaque test
+    jest.clearAllMocks();
 
     eventsService = {
       findAll: jest.fn(),
@@ -60,36 +71,45 @@ describe('EventsController', () => {
       findOne: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
-    }
+    };
 
+    // Instanciation isolée du contrôleur avec un EventsService simulé
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventsController],
       providers: [{ provide: EventsService, useValue: eventsService }],
-    }).compile()
+    }).compile();
 
-    controller = module.get(EventsController)
-  })
+    controller = module.get(EventsController);
+  });
+
+  // ============================================================================
+  // 1. Tests des endpoints CRUD (catalogue, création, détail, édition, suppression)
+  // ============================================================================
 
   describe('findAll', () => {
     it('delegates query filters to EventsService.findAll', async () => {
-      const filters: FilterEventDto = { q: 'NestJS', page: 1, pageSize: 20 }
+      // Vérifie que les paramètres de recherche et pagination (?q=...&page=1)
+      // sont transmis tels quels à EventsService.findAll()
+      const filters: FilterEventDto = { q: 'NestJS', page: 1, pageSize: 20 };
       const paginatedResponse = {
         items: [mockEventResponse],
         page: 1,
         pageSize: 20,
         total: 1,
-      }
-      eventsService.findAll.mockResolvedValue(paginatedResponse)
+      };
+      eventsService.findAll.mockResolvedValue(paginatedResponse);
 
-      const result = await controller.findAll(filters)
+      const result = await controller.findAll(filters);
 
-      expect(eventsService.findAll).toHaveBeenCalledWith(filters)
-      expect(result).toEqual(paginatedResponse)
-    })
-  })
+      expect(eventsService.findAll).toHaveBeenCalledWith(filters);
+      expect(result).toEqual(paginatedResponse);
+    });
+  });
 
   describe('create', () => {
     it('delegates event creation with the authenticated organizer id', async () => {
+      // Vérifie que le contrôleur extrait l'ID de l'organisateur connecté (@CurrentUser)
+      // et le passe en second argument à EventsService.create()
       const dto: CreateEventDto = {
         name: 'Conférence NestJS',
         description: 'Architecture modulaire et tests unitaires',
@@ -98,76 +118,118 @@ describe('EventsController', () => {
         locationId: 'loc-1',
         categoryId: 'cat-1',
         capacity: 50,
-      }
-      eventsService.create.mockResolvedValue(mockEventResponse)
+      };
+      eventsService.create.mockResolvedValue(mockEventResponse);
 
-      const result = await controller.create(dto, organizer)
+      const result = await controller.create(dto, organizer);
 
-      expect(eventsService.create).toHaveBeenCalledWith(dto, 'org-1')
-      expect(result).toBe(mockEventResponse)
-    })
-  })
+      expect(eventsService.create).toHaveBeenCalledWith(dto, 'org-1');
+      expect(result).toBe(mockEventResponse);
+    });
+  });
 
   describe('findOne', () => {
     it('delegates id lookup to EventsService.findOne', async () => {
-      eventsService.findOne.mockResolvedValue(mockEventResponse)
+      // Cas visiteur anonyme : aucun utilisateur n'est connecté, viewerId vaut undefined
+      eventsService.findOne.mockResolvedValue(mockEventResponse);
 
-      const result = await controller.findOne(mockEventResponse.id)
+      const result = await controller.findOne(mockEventResponse.id);
 
-      expect(eventsService.findOne).toHaveBeenCalledWith(mockEventResponse.id, undefined)
-      expect(result).toBe(mockEventResponse)
-    })
+      expect(eventsService.findOne).toHaveBeenCalledWith(
+        mockEventResponse.id,
+        undefined,
+      );
+      expect(result).toBe(mockEventResponse);
+    });
 
     it('passes the identity of the authenticated viewer', async () => {
-      await controller.findOne(mockEventResponse.id, organizer)
-      expect(eventsService.findOne).toHaveBeenCalledWith(mockEventResponse.id, organizer.id)
-    })
-  })
+      // Cas utilisateur connecté : on transmet son ID au service pour lui permettre
+      // de consulter ses propres événements encore en brouillon (DRAFT)
+      await controller.findOne(mockEventResponse.id, organizer);
+      expect(eventsService.findOne).toHaveBeenCalledWith(
+        mockEventResponse.id,
+        organizer.id,
+      );
+    });
+  });
 
   describe('update', () => {
     it('delegates partial update to EventsService.update', async () => {
-      const dto: UpdateEventDto = { name: 'Conférence NestJS v11' }
+      // Vérifie que PATCH /events/:id transmet l'ID de l'événement, le DTO partiel
+      // et l'ID de l'organisateur propriétaire au service
+      const dto: UpdateEventDto = { name: 'Conférence NestJS v11' };
       const updatedEvent = {
         ...mockEventResponse,
         name: 'Conférence NestJS v11',
-      }
-      eventsService.update.mockResolvedValue(updatedEvent)
+      };
+      eventsService.update.mockResolvedValue(updatedEvent);
 
-      const result = await controller.update(mockEventResponse.id, dto, organizer)
+      const result = await controller.update(
+        mockEventResponse.id,
+        dto,
+        organizer,
+      );
 
-      expect(eventsService.update).toHaveBeenCalledWith(mockEventResponse.id, dto, 'org-1')
-      expect(result).toEqual(updatedEvent)
-    })
-  })
+      expect(eventsService.update).toHaveBeenCalledWith(
+        mockEventResponse.id,
+        dto,
+        'org-1',
+      );
+      expect(result).toEqual(updatedEvent);
+    });
+  });
 
   describe('remove', () => {
     it('delegates deletion to EventsService.remove', async () => {
-      eventsService.remove.mockResolvedValue(undefined)
+      // Vérifie que DELETE /events/:id appelle EventsService.remove() et ne retourne rien (204)
+      eventsService.remove.mockResolvedValue(undefined);
 
-      await expect(controller.remove(mockEventResponse.id, organizer)).resolves.toBeUndefined()
-      expect(eventsService.remove).toHaveBeenCalledWith(mockEventResponse.id, 'org-1')
-    })
-  })
+      await expect(
+        controller.remove(mockEventResponse.id, organizer),
+      ).resolves.toBeUndefined();
+      expect(eventsService.remove).toHaveBeenCalledWith(
+        mockEventResponse.id,
+        'org-1',
+      );
+    });
+  });
+
+  // ============================================================================
+  // 2. Vérification des guards et rôles par réflexion sur les métadonnées
+  // ============================================================================
+
   describe('protection of writing routes', () => {
     // On lit les métadonnées posées par les décorateurs : la méthode n'est jamais appelée.
     const handlerOf = (method: keyof EventsController): object =>
-      Object.getOwnPropertyDescriptor(EventsController.prototype, method)!.value as object
+      Object.getOwnPropertyDescriptor(EventsController.prototype, method)!
+        .value as object;
 
     it.each(['create', 'update', 'remove'] as const)(
       '%s requires a valid token and the organizer role',
       (method) => {
-        const handler = handlerOf(method)
+        // Garantit que création, modification et suppression exigent un JWT valide
+        // ET le rôle ORGANIZER (empêchant un simple participant de modifier un événement)
+        const handler = handlerOf(method);
 
-        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([JwtAuthGuard, RolesGuard])
-        expect(Reflect.getMetadata(ROLES_KEY, handler)).toEqual([UserRole.ORGANIZER])
+        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+          JwtAuthGuard,
+          RolesGuard,
+        ]);
+        expect(Reflect.getMetadata(ROLES_KEY, handler)).toEqual([
+          UserRole.ORGANIZER,
+        ]);
       },
-    )
+    );
 
     it('keeps the catalogue public and reads an optional token on the detail route', () => {
-      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf('findAll'))).toBeUndefined()
-      expect(Reflect.getMetadata(GUARDS_METADATA, handlerOf('findOne'))).toEqual([
-        OptionalJwtAuthGuard,
-      ])
-    })
-  })
-})
+      // Le catalogue (findAll) doit rester accessible sans authentification (aucun guard),
+      // tandis que le détail (findOne) utilise OptionalJwtAuthGuard pour identifier l'auteur éventuel
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, handlerOf('findAll')),
+      ).toBeUndefined();
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, handlerOf('findOne')),
+      ).toEqual([OptionalJwtAuthGuard]);
+    });
+  });
+});

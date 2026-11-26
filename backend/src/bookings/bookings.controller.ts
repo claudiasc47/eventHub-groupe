@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import type { AuthUser } from '../common/types/authenticated-request';
@@ -19,7 +28,9 @@ export class BookingsController {
     @Body() dto: CreateBookingDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return toBookingResponse(await this.bookings.create(user.id, eventId, dto.quantity));
+    return toBookingResponse(
+      await this.bookings.create(user.id, eventId, dto.quantity),
+    );
   }
 
   @Get('me/bookings')
@@ -29,7 +40,10 @@ export class BookingsController {
   }
 
   @Patch('bookings/:id/cancel')
-  async cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+  async cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
     return toBookingResponse(await this.bookings.cancel(user.id, id));
   }
 }

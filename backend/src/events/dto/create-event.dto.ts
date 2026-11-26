@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer'
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsInt,
@@ -8,33 +8,35 @@ import {
   IsUUID,
   Matches,
   Min,
-} from 'class-validator'
+} from 'class-validator';
 
 export class CreateEventDto {
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
-  name!: string
+  name!: string;
 
   @IsString()
   @IsOptional()
-  description?: string
+  description?: string;
 
   @IsDateString({ strict: true, strictSeparator: true })
   @Matches(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
-  startDate!: string
+  startDate!: string;
 
   @IsDateString({ strict: true, strictSeparator: true })
   @Matches(/T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
-  endDate!: string
+  endDate!: string;
 
   @IsUUID()
-  locationId!: string
+  locationId!: string;
 
   @IsUUID()
-  categoryId!: string
+  categoryId!: string;
 
   @IsInt()
   @Min(1)
-  capacity!: number
+  capacity!: number;
 }

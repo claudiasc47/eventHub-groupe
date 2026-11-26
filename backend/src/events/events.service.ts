@@ -4,32 +4,32 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { Booking } from '../bookings/booking.entity'
-import { Category } from '../categories/category.entity'
-import { isPostgresErrorCode } from '../database/is-postgres-error-code'
-import { Location } from '../locations/location.entity'
-import { User, UserRole } from '../users/user.entity'
-import { CreateEventDto } from './dto/create-event.dto'
-import { FilterEventDto } from './dto/filter-event.dto'
-import { UpdateEventDto } from './dto/update-event.dto'
-import { Event } from './event.entity'
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Booking } from '../bookings/booking.entity';
+import { Category } from '../categories/category.entity';
+import { isPostgresErrorCode } from '../database/is-postgres-error-code';
+import { Location } from '../locations/location.entity';
+import { User, UserRole } from '../users/user.entity';
+import { CreateEventDto } from './dto/create-event.dto';
+import { FilterEventDto } from './dto/filter-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+import { Event } from './event.entity';
 
 type EventResponse = {
-  id: string
-  name: string
-  description: string | null
-  startDate: Date
-  endDate: Date
-  location: { id: string; name: string }
-  category: { id: string; name: string }
-  status: string
-  capacity: number
-  remainingSeats: number
-  organizerId: string
-}
+  id: string;
+  name: string;
+  description: string | null;
+  startDate: Date;
+  endDate: Date;
+  location: { id: string; name: string };
+  category: { id: string; name: string };
+  status: string;
+  capacity: number;
+  remainingSeats: number;
+  organizerId: string;
+};
 
 @Injectable()
 export class EventsService {
@@ -52,81 +52,89 @@ export class EventsService {
       .leftJoinAndSelect('event.location', 'location')
       .leftJoinAndSelect('event.category', 'category')
       .leftJoinAndSelect('event.organizer', 'organizer')
-      .where('event.status = :status', { status: 'PUBLISHED' })
+      .where('event.status = :status', { status: 'PUBLISHED' });
 
     if (filters.q) {
       query.andWhere(
         "(event.name ILIKE :search OR COALESCE(event.description, '') ILIKE :search)",
         { search: `%${filters.q}%` },
-      )
+      );
     }
     if (filters.categoryId) {
       query.andWhere('category.id = :categoryId', {
         categoryId: filters.categoryId,
-      })
+      });
     }
     if (filters.locationId) {
       query.andWhere('location.id = :locationId', {
         locationId: filters.locationId,
-      })
+      });
     }
     if (filters.dateFrom) {
       query.andWhere('event.startDate >= :dateFrom', {
         dateFrom: this.inclusiveDateFrom(filters.dateFrom),
-      })
+      });
     }
     if (filters.dateTo) {
-      const dateTo = this.inclusiveDateTo(filters.dateTo)
+      const dateTo = this.inclusiveDateTo(filters.dateTo);
       query.andWhere(
-        dateTo.exclusive ? 'event.startDate < :dateTo' : 'event.startDate <= :dateTo',
+        dateTo.exclusive
+          ? 'event.startDate < :dateTo'
+          : 'event.startDate <= :dateTo',
         { dateTo: dateTo.value },
-      )
+      );
     }
 
     const [events, total] = await query
-      .orderBy('event.startDate', filters.sort === 'startDate:desc' ? 'DESC' : 'ASC')
+      .orderBy(
+        'event.startDate',
+        filters.sort === 'startDate:desc' ? 'DESC' : 'ASC',
+      )
       .addOrderBy('event.id', 'ASC')
       .skip((filters.page - 1) * filters.pageSize)
       .take(filters.pageSize)
-      .getManyAndCount()
+      .getManyAndCount();
 
     return {
       items: events.map((event) => this.toResponse(event)),
       page: filters.page,
       pageSize: filters.pageSize,
       total,
-    }
+    };
   }
 
   async findOne(id: string, viewerId?: string): Promise<EventResponse> {
-    const event = await this.loadEvent(id)
+    const event = await this.loadEvent(id);
     if (event.status === 'DRAFT' && event.organizer.id !== viewerId) {
-      throw new NotFoundException(`Event ${id} not found`)
+      throw new NotFoundException(`Event ${id} not found`);
     }
-    return this.toResponse(event)
+    return this.toResponse(event);
   }
 
-  async create(input: CreateEventDto, organizerId: string): Promise<EventResponse> {
-    const startDate = new Date(input.startDate)
-    const endDate = new Date(input.endDate)
-    this.assertDateRange(startDate, endDate)
+  async create(
+    input: CreateEventDto,
+    organizerId: string,
+  ): Promise<EventResponse> {
+    const startDate = new Date(input.startDate);
+    const endDate = new Date(input.endDate);
+    this.assertDateRange(startDate, endDate);
 
     const [location, category, organizer] = await Promise.all([
       this.locationsRepository.findOneBy({ id: input.locationId }),
       this.categoriesRepository.findOneBy({ id: input.categoryId }),
       this.usersRepository.findOneBy({ id: organizerId }),
-    ])
+    ]);
     if (!location) {
-      throw new NotFoundException(`Location ${input.locationId} not found`)
+      throw new NotFoundException(`Location ${input.locationId} not found`);
     }
     if (!category) {
-      throw new NotFoundException(`Category ${input.categoryId} not found`)
+      throw new NotFoundException(`Category ${input.categoryId} not found`);
     }
     if (!organizer) {
-      throw new NotFoundException(`Organizer ${organizerId} not found`)
+      throw new NotFoundException(`Organizer ${organizerId} not found`);
     }
     if (organizer.role !== UserRole.ORGANIZER) {
-      throw new BadRequestException('Only organizers can create events.')
+      throw new BadRequestException('Only organizers can create events.');
     }
 
     const event = this.eventsRepository.create({
@@ -140,78 +148,102 @@ export class EventsService {
       status: 'DRAFT',
       capacity: input.capacity,
       remainingSeats: input.capacity,
-    })
-    return this.toResponse(await this.eventsRepository.save(event))
+    });
+    return this.toResponse(await this.eventsRepository.save(event));
   }
 
-  async update(id: string, input: UpdateEventDto, userId: string): Promise<EventResponse> {
-    const event = await this.loadEvent(id)
-    this.assertOwner(event, userId)
-    const startDate = input.startDate ? new Date(input.startDate) : event.startDate
-    const endDate = input.endDate ? new Date(input.endDate) : event.endDate
-    this.assertDateRange(startDate, endDate)
+  async update(
+    id: string,
+    input: UpdateEventDto,
+    userId: string,
+  ): Promise<EventResponse> {
+    const event = await this.loadEvent(id);
+    this.assertOwner(event, userId);
+    const startDate = input.startDate
+      ? new Date(input.startDate)
+      : event.startDate;
+    const endDate = input.endDate ? new Date(input.endDate) : event.endDate;
+    this.assertDateRange(startDate, endDate);
 
     if (input.name !== undefined) {
-      event.name = input.name.trim()
+      event.name = input.name.trim();
     }
     if (input.description !== undefined) {
-      event.description = input.description
+      event.description = input.description;
     }
-    event.startDate = startDate
-    event.endDate = endDate
+    event.startDate = startDate;
+    event.endDate = endDate;
 
     if (input.locationId) {
       const location = await this.locationsRepository.findOneBy({
         id: input.locationId,
-      })
+      });
       if (!location) {
-        throw new NotFoundException(`Location ${input.locationId} not found`)
+        throw new NotFoundException(`Location ${input.locationId} not found`);
       }
-      event.location = location
+      event.location = location;
     }
     if (input.categoryId) {
       const category = await this.categoriesRepository.findOneBy({
         id: input.categoryId,
-      })
+      });
       if (!category) {
-        throw new NotFoundException(`Category ${input.categoryId} not found`)
+        throw new NotFoundException(`Category ${input.categoryId} not found`);
       }
-      event.category = category
+      event.category = category;
     }
     if (input.capacity !== undefined) {
-      const reserved = await this.getConfirmedQuantity(id)
+      const reserved = await this.getConfirmedQuantity(id);
       if (input.capacity < reserved) {
         throw new ConflictException(
           `Capacity cannot be lower than the ${reserved} confirmed reserved seats.`,
-        )
+        );
       }
-      event.capacity = input.capacity
-      event.remainingSeats = input.capacity - reserved
+      event.capacity = input.capacity;
+      event.remainingSeats = input.capacity - reserved;
     }
     if (input.status) {
-      event.status = input.status
+      event.status = input.status;
     }
 
-    return this.toResponse(await this.eventsRepository.save(event))
+    return this.toResponse(await this.eventsRepository.save(event));
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    this.assertOwner(await this.loadEvent(id), userId)
+    this.assertOwner(await this.loadEvent(id), userId);
     const bookingCount = await this.bookingsRepository.count({
       where: { event: { id } },
-    })
+    });
     if (bookingCount > 0) {
-      throw new ConflictException('This event cannot be deleted because it has bookings.')
+      throw new ConflictException(
+        'This event cannot be deleted because it has bookings.',
+      );
     }
 
     try {
-      await this.eventsRepository.delete(id)
+      await this.eventsRepository.delete(id);
     } catch (error) {
       if (isPostgresErrorCode(error, '23503')) {
-        throw new ConflictException('This event cannot be deleted because it has bookings.')
+        throw new ConflictException(
+          'This event cannot be deleted because it has bookings.',
+        );
       }
-      throw error
+      throw error;
     }
+  }
+
+  async findByOrganizer(organizerId: string): Promise<EventResponse[]> {
+    const events = await this.eventsRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.location', 'location')
+      .leftJoinAndSelect('event.category', 'category')
+      .leftJoinAndSelect('event.organizer', 'organizer')
+      .where('organizer.id = :organizerId', { organizerId })
+      .orderBy('event.startDate', 'ASC')
+      .addOrderBy('event.id', 'ASC')
+      .getMany();
+
+    return events.map((event) => this.toResponse(event));
   }
 
   private async loadEvent(id: string): Promise<Event> {
@@ -221,11 +253,11 @@ export class EventsService {
       .leftJoinAndSelect('event.category', 'category')
       .leftJoinAndSelect('event.organizer', 'organizer')
       .where('event.id = :id', { id })
-      .getOne()
+      .getOne();
     if (!event) {
-      throw new NotFoundException(`Event ${id} not found`)
+      throw new NotFoundException(`Event ${id} not found`);
     }
-    return event
+    return event;
   }
 
   private assertOwner(event: Event, userId: string): void {
@@ -233,7 +265,7 @@ export class EventsService {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
         message: 'Only the event organizer can edit or delete it.',
-      })
+      });
     }
   }
 
@@ -243,8 +275,8 @@ export class EventsService {
       .select('COALESCE(SUM(booking.quantity), 0)', 'quantity')
       .where('booking.event_id = :eventId', { eventId })
       .andWhere('booking.status = :status', { status: 'CONFIRMED' })
-      .getRawOne<{ quantity: string }>()
-    return Number(result?.quantity ?? 0)
+      .getRawOne<{ quantity: string }>();
+    return Number(result?.quantity ?? 0);
   }
 
   private assertDateRange(startDate: Date, endDate: Date): void {
@@ -253,24 +285,26 @@ export class EventsService {
       Number.isNaN(endDate.getTime()) ||
       endDate < startDate
     ) {
-      throw new BadRequestException('Event endDate must be greater than or equal to startDate.')
+      throw new BadRequestException(
+        'Event endDate must be greater than or equal to startDate.',
+      );
     }
   }
 
   private inclusiveDateFrom(date: string): string {
-    return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00.000Z` : date
+    return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00.000Z` : date;
   }
 
   private inclusiveDateTo(date: string): {
-    value: string
-    exclusive: boolean
+    value: string;
+    exclusive: boolean;
   } {
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      const nextDay = new Date(`${date}T00:00:00.000Z`)
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1)
-      return { value: nextDay.toISOString(), exclusive: true }
+      const nextDay = new Date(`${date}T00:00:00.000Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      return { value: nextDay.toISOString(), exclusive: true };
     }
-    return { value: date, exclusive: false }
+    return { value: date, exclusive: false };
   }
 
   private toResponse(event: Event): EventResponse {
@@ -286,6 +320,8 @@ export class EventsService {
       capacity: event.capacity,
       remainingSeats: event.remainingSeats,
       organizerId: event.organizer.id,
-    }
+    };
   }
+
+  
 }

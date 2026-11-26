@@ -46,13 +46,23 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
-  
+
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null;
 
-  @Column({ name: 'verification_token_hash', type: 'varchar', nullable: true, select: false })
+  @Column({
+    name: 'verification_token_hash',
+    type: 'varchar',
+    nullable: true,
+    select: false,
+  })
   verificationTokenHash!: string | null;
 
-  @Column({ name: 'verification_token_expires_at', type: 'timestamptz', nullable: true, select: false })
+  @Column({
+    name: 'verification_token_expires_at',
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
   verificationTokenExpiresAt!: Date | null;
 }
