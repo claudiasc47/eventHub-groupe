@@ -13,11 +13,11 @@
 
    Attendu : le fichier `.env` existe à la racine sans écraser une configuration locale existante.
 
-2. Démarrer l'ensemble de la stack Docker (`eventhub-db`, `eventhub-api`, `eventhub-mailpit`, `eventhub-web`) :
+2. Installer et compiler le Back (nécessaire car le volume `./backend:/app` masque le `dist/` de l'image), puis démarrer la stack Docker (`eventhub-db`, `eventhub-api`, `eventhub-mailpit`, `eventhub-web`) :
 
-       docker compose up -d --build
+       npm --prefix backend ci && npm --prefix backend run build && docker compose up -d --build
 
-   Attendu : les 4 conteneurs démarrent et passent à l'état `Up` (et `healthy` pour `db` et `api`).
+   Attendu : le build NestJS réussit (`backend/dist` généré) et les 4 conteneurs démarrent et passent à l'état `Up` (`healthy` pour `db` et `api`).
 
 3. Vérifier l'état des conteneurs :
 
@@ -65,9 +65,9 @@
        docker compose logs --tail=50 api
 
 2. Aligner `VITE_API_URL=http://localhost:3000/api` et `CORS_ORIGIN=http://localhost:5173` dans `.env` si nécessaire (sans jamais commiter `.env`).
-3. Redémarrer l'API et le Front pour appliquer la configuration :
+3. Recréer et redémarrer l'API et le Front pour appliquer les nouvelles variables du `.env` :
 
-       docker compose restart api web
+       docker compose up -d api web
 
 #### Escalade
 - Prévenir **Kenzo** (périmètre Back) si `eventhub-api` reste en erreur, **Robin** (périmètre Front) si la requête échoue côté client malgré un `200 OK`, ou **Arnaud** (Docker / Infra) si le problème vient du réseau Docker Compose.
@@ -120,7 +120,7 @@
 
 ---
 
-### 3. Symptôme : la base est vide ou la connexion échoue avec les comptes de démonstration (`@eventhub.local`)
+### 3. Symptôme : la base est vide ou aucun compte utilisateur n'est disponible pour la recette
 
 #### Vérifications
 1. Vérifier que le conteneur PostgreSQL `eventhub-db` est sain :
@@ -129,31 +129,28 @@
 
    Attendu : état `Up (healthy)`.
 
-2. Vérifier la présence des utilisateurs en base dans le conteneur PostgreSQL :
+2. Vérifier l'état des tables et des utilisateurs en base dans le conteneur PostgreSQL :
 
        docker compose exec db psql -U eventhub -d eventhub -c "SELECT email, role FROM users;"
 
-   Attendu : liste contenant `admin@eventhub.local`, `organizer@eventhub.local` et `user@eventhub.local`.
+   Attendu : la table `users` existe (0 ligne si aucun compte de test n'a encore été créé, car le Back actuel ne génère pas de comptes de démonstration par défaut).
 
 #### Cause probable
-- Le volume Docker `eventhub_pgdata` a été supprimé (`docker compose down -v`) ou les migrations / données initiales n'ont pas été exécutées après une évolution du schéma.
+- Les migrations TypeORM n'ont pas encore été exécutées sur la base locale, ou aucun compte de test n'a encore été inscrit et confirmé pour la recette.
 
 #### Action
 1. Appliquer les migrations TypeORM en attente dans le conteneur API :
 
        docker compose exec api npm run migration:run
 
-2. Si la base reste vide ou incohérente en local, réinitialiser la stack et le volume de données :
-
-       docker compose down -v && docker compose up -d --build
-
-3. Vérifier à nouveau la présence des comptes de démonstration (identifiants documentés dans `README.md`, jamais en dur dans le code).
+2. Créer un compte de test via l'interface d'inscription (`http://localhost:5173`) ou via `POST /api/auth/register`.
+3. Récupérer le jeton de confirmation reçu dans Mailpit (`http://localhost:8025`) et valider le compte via `POST /api/auth/verify-email`.
 
 #### Escalade
-- Prévenir **Kenzo** (périmètre Back / Base de données) si le seed ou une migration échoue au démarrage de `eventhub-api`.
+- Prévenir **Kenzo** (périmètre Back / Base de données) si une migration échoue au démarrage ou lors de `migration:run`.
 
 #### Contrôle final
-- Se connecter sur `http://localhost:5173` avec un compte de démonstration (`README.md`) : l'authentification réussit (`200 OK`) et redirige vers l'application.
+- Se connecter sur `http://localhost:5173` avec le compte de test créé et confirmé : l'authentification réussit (`200 OK`) et redirige vers l'application.
 
 ---
 
@@ -186,7 +183,7 @@
 - Prévenir **Kenzo** (périmètre Back) si aucun message n'apparaît dans Mailpit après une nouvelle inscription, ou **Arnaud** (Docker) si le conteneur `eventhub-mailpit` refuse de démarrer.
 
 #### Contrôle final
-- L'e-mail de confirmation apparaît dans `http://localhost:8025` avec le lien de vérification pointant vers `http://localhost:5173`.
+- Récupérer le token dans Mailpit (`http://localhost:8025`), le transmettre à `POST /api/auth/verify-email` (la page Front `/verify-email` étant absente), puis vérifier que la connexion réussit sur `http://localhost:5173`.
 
 ---
 
@@ -241,11 +238,11 @@
 
    Attendu : le tag apparaît sur le dépôt distant.
 
-3. Reconstruire et démarrer les services avec la configuration cible :
+3. Installer les dépendances, recompiler le Back et redémarrer les services avec la configuration cible :
 
-       docker compose up -d --build
+       npm --prefix backend ci && npm --prefix backend run build && docker compose up -d --build
 
-   Attendu : tous les conteneurs redémarrent sans erreur.
+   Attendu : la compilation NestJS réussit et tous les conteneurs redémarrent sans erreur.
 
 4. Exécuter le contrôle de santé et un parcours critique (catalogue + connexion) :
 
@@ -266,11 +263,11 @@
 
    Attendu : le dépôt local est positionné sur le commit validé du tag sain.
 
-3. Relancer la stack sur cette version saine :
+3. Recompiler le Back sur cette version saine et relancer la stack :
 
-       docker compose up -d --build
+       npm --prefix backend ci && npm --prefix backend run build && docker compose up -d --build
 
-   Attendu : les conteneurs redémarrent sur la version antérieure stable.
+   Attendu : la compilation réussit et les conteneurs redémarrent sur la version antérieure stable.
 
 4. Contrôler le retour à la normale :
 
