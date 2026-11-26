@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 # Généré par `npm run gen:api` : ne pas reformater à la main.
 src/api/schema.d.ts
+storybook-static
