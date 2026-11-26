@@ -10,7 +10,7 @@ Conformément à notre décision d'architecture ([ADR-001](docs/adr/ADR-001-arch
 
 - **`frontend/`** : Application Single Page (React + Vite)
 - **`backend/`** : API REST unifiée (NestJS + TypeORM) regroupant les domaines *Users*, *Events* et *Ticketing*
-- **`docs/`** : Documentation technique, schémas et décisions d'architecture (ADR)
+- **`docs/`** : Documentation technique, runbook opérationnel et décisions d'architecture (ADR)
 - **`documentation/`** : Audit initial et livrables d'ateliers
 
 ---
@@ -55,6 +55,7 @@ Démarrer la base de données PostgreSQL 16, l'API NestJS, le serveur SMTP local
 
 ## Documentation et qualité
 
+- [Runbook opérationnel (Coordination Front/Back)](docs/runbook.md)
 - [Contrat d'API v0.1 (Validé)](documentation/Contrat-API-v0.1-EventHub.md)
 - [Cartographie initiale & Audit (Atelier 1)](documentation/ATELIER-1-CARTOGRAPHIE-EVENTHUB.md)
 - [ADR-001 : Architecture découplée SPA + API REST unifiée](docs/adr/ADR-001-architecture-spa-api-unifiee.md)
