@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { RequireRole } from './auth/RequireRole'
 import { Layout } from './components/Layout'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { CatalogPage } from './pages/CatalogPage'
 import { EventCreatePage } from './pages/EventCreatePage'
 import { EventDetailPage } from './pages/EventDetailPage'
@@ -21,6 +22,14 @@ export default function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route
+            path="admin/users"
+            element={
+              <RequireRole role="admin">
+                <AdminUsersPage />
+              </RequireRole>
+            }
+          />
           <Route path="me/bookings" element={<BookingsPage />} />
           <Route path="me/events" element={<OrganizerEventsPage />} />
           <Route path="events/:id" element={<EventDetailPage />} />
