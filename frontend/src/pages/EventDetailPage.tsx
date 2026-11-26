@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { api } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Event } from '../api/types'
 import { useSessionToken } from '../auth/session'
+import { readBackLink } from '../components/backLink'
 import { EventBookingForm } from '../components/EventBookingForm'
 
 const dates = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
@@ -17,10 +18,11 @@ type EventState =
 export function EventDetailPage() {
   const { id } = useParams<'id'>()
   const token = useSessionToken()
+  const back = readBackLink(useLocation().state)
 
   return (
     <section className="event-detail-page">
-      <Link to="/">Retour au catalogue</Link>
+      <Link to={back.to}>{back.label}</Link>
       {id ? (
         <EventDetail key={JSON.stringify([id, token])} id={id} token={token} />
       ) : (

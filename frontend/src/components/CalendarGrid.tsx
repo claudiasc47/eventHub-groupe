@@ -1,5 +1,6 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import type { Event } from '../api/types'
+import { toBackState } from './backLink'
 import { today } from './dateOnly'
 
 const WEEKDAYS = [
@@ -64,6 +65,7 @@ function dayNumber(day: string): string {
 }
 
 function DayEvents({ events }: { events: Event[] | undefined }) {
+  const location = useLocation()
   if (!events) return null
   return (
     <ul className="calendar-events">
@@ -75,6 +77,7 @@ function DayEvents({ events }: { events: Event[] | undefined }) {
             <Link
               className="calendar-event"
               to={`/events/${event.id}`}
+              state={toBackState(location)}
               title={event.name}
               aria-label={`${time} ${event.name}, ${longDays.format(start)}`}
             >

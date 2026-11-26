@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import App from '../App'
 import type { Event } from '../api/types'
 import { currentMonth, monthLabel } from '../components/calendarMonth'
+import { createAuthHandlers, demoPassword, demoUser } from '../mocks/auth'
 import { createCatalogHandlers } from '../mocks/catalog'
 import { createEventHandlers, demoCategories, demoLocations } from '../mocks/events'
 import { createEventStore } from '../mocks/store'
@@ -49,6 +50,7 @@ function useEvents(events: Event[]) {
     }),
     ...createCatalogHandlers(base, store),
     ...createEventHandlers(base, store),
+    ...createAuthHandlers(base),
   )
 }
 
@@ -226,5 +228,32 @@ describe('Calendrier — accès au détail', () => {
       await screen.findByRole('heading', { level: 1, name: 'Soirée jazz' }),
     ).toBeInTheDocument()
     expect(window.location.pathname).toBe(`/events/${jazz.id}`)
+  })
+
+  it('revient au mois affiché depuis le détail', async () => {
+    const { user } = openCalendar()
+    await settled()
+
+    await user.click(screen.getByRole('link', { name: /Soirée jazz/ }))
+    await user.click(await screen.findByRole('link', { name: 'Retour au calendrier' }))
+
+    expect(await screen.findByRole('table', { name: 'mars 2030' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?month=2030-03')
+  })
+
+  it('garde le retour au calendrier après une connexion pour réserver', async () => {
+    const { user } = openCalendar()
+    await settled()
+
+    await user.click(screen.getByRole('link', { name: /Soirée jazz/ }))
+    await user.click(await screen.findByRole('link', { name: 'Se connecter pour réserver' }))
+    await user.type(screen.getByLabelText('E-mail'), demoUser.email)
+    await user.type(screen.getByLabelText('Mot de passe'), demoPassword)
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }))
+
+    expect(await screen.findByRole('link', { name: 'Retour au calendrier' })).toHaveAttribute(
+      'href',
+      '/calendar?month=2030-03',
+    )
   })
 })
