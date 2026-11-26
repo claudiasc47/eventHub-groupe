@@ -143,7 +143,7 @@
 
        docker compose exec api npm run migration:run
 
-2. Créer un compte de test via l'interface d'inscription (`http://localhost:5173`) ou via `POST /api/auth/register`.
+2. Créer un compte de test via le formulaire d'inscription (`http://localhost:5173/register`) ou via `POST /api/users/register`.
 3. Récupérer le jeton de confirmation reçu dans Mailpit (`http://localhost:8025`) et valider le compte via `POST /api/auth/verify-email`.
 
 #### Escalade
@@ -177,7 +177,8 @@
 
        docker compose up -d mailpit
 
-2. Ouvrir l'interface web Mailpit à l'adresse `http://localhost:8025` pour consulter les e-mails capturés.
+2. Si le compte est déjà créé et que le mail manque (démarrer Mailpit ne renvoie pas l'e-mail qui a échoué), appeler `POST /api/auth/resend-verification` avec l'adresse e-mail du compte.
+3. Ouvrir l'interface web Mailpit à l'adresse `http://localhost:8025` pour consulter les e-mails capturés.
 
 #### Escalade
 - Prévenir **Kenzo** (périmètre Back) si aucun message n'apparaît dans Mailpit après une nouvelle inscription, ou **Arnaud** (Docker) si le conteneur `eventhub-mailpit` refuse de démarrer.
@@ -263,19 +264,25 @@
 
    Attendu : le dépôt local est positionné sur le commit validé du tag sain.
 
-3. Recompiler le Back sur cette version saine et relancer la stack :
+3. Si le rollback intervient après une migration, vérifier la compatibilité du schéma PostgreSQL avec la version cible (revenir à un tag Git ne restaure pas la base) :
+
+       docker compose exec api npm run typeorm -- schema:log -d dist/database/data-source.js
+
+   Attendu : aucune divergence de schéma bloquante (sinon exécuter `migration:revert` avec l'accord de **Kenzo** avant de redémarrer).
+
+4. Recompiler le Back sur cette version saine et relancer la stack :
 
        npm --prefix backend ci && npm --prefix backend run build && docker compose up -d --build
 
    Attendu : la compilation réussit et les conteneurs redémarrent sur la version antérieure stable.
 
-4. Contrôler le retour à la normale :
+5. Contrôler le retour à la normale :
 
        curl -i http://localhost:3000/api/health
 
    Attendu : `200 OK` et affichage normal du catalogue sur `http://localhost:5173`.
 
-5. Prévenir toute l'équipe sur le canal de communication et planifier un **post-mortem sans blâme sous 48 h** (`docs/post-mortems/`).
+6. Prévenir toute l'équipe sur le canal de communication et planifier un **post-mortem sans blâme sous 48 h** (`docs/post-mortems/`).
 
 ---
 
