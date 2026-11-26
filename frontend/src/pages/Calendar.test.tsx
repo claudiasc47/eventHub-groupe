@@ -202,3 +202,29 @@ describe('Calendrier — navigation', () => {
     expect(screen.getByRole('table')).toHaveAccessibleName(monthLabel(currentMonth()))
   })
 })
+
+describe('Calendrier — accès au détail', () => {
+  it('rend chaque événement cliquable vers sa page de détail', async () => {
+    openCalendar()
+    await settled()
+
+    const link = within(dayCell('2030-03-10')).getByRole('link', {
+      name: /Soirée jazz, 10 mars 2030$/,
+    })
+    expect(link).toHaveAttribute('href', `/events/${jazz.id}`)
+    expect(link).toHaveAttribute('title', 'Soirée jazz')
+    expect(within(dayCell('2030-03-10')).getAllByRole('link')).toHaveLength(2)
+  })
+
+  it('ouvre le détail d’un événement depuis le calendrier', async () => {
+    const { user } = openCalendar()
+    await settled()
+
+    await user.click(screen.getByRole('link', { name: /Soirée jazz/ }))
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Soirée jazz' }),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe(`/events/${jazz.id}`)
+  })
+})

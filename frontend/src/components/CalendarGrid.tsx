@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { Event } from '../api/types'
 import { today } from './dateOnly'
 
@@ -13,6 +14,7 @@ const WEEKDAYS = [
 
 const times = new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' })
 const firstDays = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
+const longDays = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' })
 
 type CalendarGridProps = {
   month: string
@@ -65,12 +67,22 @@ function DayEvents({ events }: { events: Event[] | undefined }) {
   if (!events) return null
   return (
     <ul className="calendar-events">
-      {events.map((event) => (
-        <li key={event.id} className="calendar-event">
-          <time dateTime={event.startDate}>{times.format(new Date(event.startDate))}</time>{' '}
-          {event.name}
-        </li>
-      ))}
+      {events.map((event) => {
+        const start = new Date(event.startDate)
+        const time = times.format(start)
+        return (
+          <li key={event.id}>
+            <Link
+              className="calendar-event"
+              to={`/events/${event.id}`}
+              title={event.name}
+              aria-label={`${time} ${event.name}, ${longDays.format(start)}`}
+            >
+              <time dateTime={event.startDate}>{time}</time> {event.name}
+            </Link>
+          </li>
+        )
+      })}
     </ul>
   )
 }
