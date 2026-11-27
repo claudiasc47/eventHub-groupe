@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { api, readToken } from '../api/client'
 import { getApiError } from '../api/errors'
 import type { Booking, BookingInput, Event } from '../api/types'
@@ -13,12 +13,13 @@ type EventBookingFormProps = {
 
 export function EventBookingForm({ event, token, onSeatsChange }: EventBookingFormProps) {
   const navigate = useNavigate()
+  const { state: backState } = useLocation()
   const pending = useRef<AbortController | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [quantityError, setQuantityError] = useState('')
   const [error, setError] = useState('')
   const [booking, setBooking] = useState<Booking | null>(null)
-  const loginState = { bookingEventId: event.id }
+  const loginState = { bookingEventId: event.id, backState }
   const eventPath = `/events/${encodeURIComponent(event.id)}`
 
   useEffect(() => () => pending.current?.abort(), [])

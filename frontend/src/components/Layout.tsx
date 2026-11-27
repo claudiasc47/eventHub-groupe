@@ -20,6 +20,7 @@ export function Layout() {
           <NavLink to="/" end>
             Catalogue
           </NavLink>
+          <NavLink to="/calendar">Calendrier</NavLink>
           {token && role === 'organizer' && (
             <>
               <NavLink to="/me/events">Mes événements</NavLink>

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { setupServer } from 'msw/node'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
@@ -24,6 +25,15 @@ describe('App', () => {
 
     expect(screen.getByRole('navigation')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Catalogue' })).toBeInTheDocument()
+  })
+
+  it('mène au calendrier depuis la navigation', async () => {
+    renderAt('/')
+
+    await userEvent.click(screen.getByRole('link', { name: 'Calendrier' }))
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Calendrier' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Calendrier' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('n’affiche « Créer un événement » qu’aux organisateurs', () => {

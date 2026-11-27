@@ -141,6 +141,16 @@ describe('Catalogue — affichage', () => {
     expect(window.location.pathname).toBe(`/events/${jazz.id}`)
   })
 
+  it('revient au catalogue filtré depuis le détail', async () => {
+    const { user } = openCatalog('/?q=jazz')
+
+    await user.click(await screen.findByRole('link', { name: 'Voir le détail : Soirée jazz' }))
+    await user.click(await screen.findByRole('link', { name: 'Retour au catalogue' }))
+
+    expect(await titles()).toEqual(['Soirée jazz'])
+    expect(window.location.search).toBe('?q=jazz')
+  })
+
   it('signale une erreur de chargement et permet de réessayer', async () => {
     let calls = 0
     server.use(

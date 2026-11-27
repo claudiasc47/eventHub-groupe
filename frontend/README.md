@@ -73,6 +73,19 @@ Pour la démonstration locale, `VITE_MOCK_EVENTS=true` simule aussi `GET /events
 détail public `GET /events/{id}` avec quelques événements publiés, datés à partir du
 jour courant.
 
+## Calendrier
+
+La page publique `/calendar` affiche les événements publiés dans une grille mensuelle,
+du lundi au dimanche, chacun placé au jour de sa date de début (heure locale). Le mois est
+gardé dans l’adresse (`?month=2026-12`) ; sans mois ou avec un mois invalide, le mois
+courant est affiché. Les boutons « Mois précédent », « Aujourd’hui » et « Mois suivant »
+changent de mois, et chaque événement mène à son détail `/events/{id}`.
+
+La page appelle `GET /events` sur toute la période de la grille, avec un jour de marge de
+chaque côté car l’API filtre les dates en UTC. Au-delà de 100 événements (`pageSize`
+maximal du contrat), un message indique que la liste est incomplète. Le mock
+`VITE_MOCK_EVENTS=true` du catalogue sert aussi au calendrier.
+
 ## Mes réservations
 
 La route `/me/bookings` nécessite une session. Elle consomme `GET /me/bookings`
