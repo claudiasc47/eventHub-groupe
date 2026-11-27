@@ -5,6 +5,7 @@ import type { components } from './schema'
 type Schemas = components['schemas']
 
 export type Role = Schemas['Role']
+export type RoleInput = Schemas['RoleInput']
 export type User = Schemas['User']
 export type RegisterInput = Schemas['RegisterInput']
 export type LoginInput = Schemas['LoginInput']

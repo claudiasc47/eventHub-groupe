@@ -27,6 +27,7 @@ export function Layout() {
               <NavLink to="/events/new">Créer un événement</NavLink>
             </>
           )}
+          {token && role === 'admin' && <NavLink to="/admin/users">Utilisateurs</NavLink>}
           {token ? (
             <>
               <NavLink to="/me/bookings">Mes réservations</NavLink>
